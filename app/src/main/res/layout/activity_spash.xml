@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+    <data>
+        <variable
+            name="activity"
+            type="com.nfc.cn.spashinfo.SpashActivity" />
+
+        <variable
+            name="model"
+            type="com.nfc.cn.spashinfo.vm.SpashViewModel" />
+    </data>
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <TextView
+            android:id="@+id/tv_content"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textColor="@color/color_black"
+            android:textSize="@dimen/text_size_22"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="@dimen/dp_50"
+            />
+        <ImageView
+            android:layout_width="@dimen/dp_44"
+            android:layout_height="@dimen/dp_44"
+            android:src="@drawable/ic_crop_rotate_black_24dp"
+            android:layout_above="@+id/tv_content"
+            android:layout_centerInParent="true"
+            android:layout_marginBottom="@dimen/dp_10"
+            />
+    </RelativeLayout>
+</layout>

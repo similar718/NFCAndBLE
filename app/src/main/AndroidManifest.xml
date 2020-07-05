@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.nfc.cn">
+
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!--
+API level 9只包含有限的tag支持,包括：
+    .通过ACTION_TAG_DISCOVERED来发布Tag信息
+    .只有通过EXTRA_NDEF_MESSAGES扩展来访问NDEF消息
+    .其他的tag属性和I/O操作都不支持
+    所以你可能想要用API level 10来实现对tag的广泛的读写支持。
+    -->
+    <!-- NFC权限 -->
+    <uses-permission android:name="android.permission.NFC" /> <!-- 要求当前设备必须要有NFC芯片 -->
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="true" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+
+    <application
+        android:name=".application.NFCBleApplication"
+        android:allowBackup="true"
+        android:icon="@drawable/ic_crop_rotate_black_24dp"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/ic_crop_rotate_black_24dp"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme.Main">
+        <!--<activity android:name=".MainActivity1">-->
+        <activity android:name=".spashinfo.SpashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".MainActivity"
+            android:configChanges="orientation|keyboardHidden"
+            android:launchMode="singleTop"
+            android:screenOrientation="fullSensor"
+            android:windowSoftInputMode="adjustUnspecified|stateHidden">
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.nfc.action.TAG_DISCOVERED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.nfc.action.TECH_DISCOVERED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.action.TECH_DISCOVERED"
+                android:resource="@xml/nfc_tech_filter" />
+        </activity>
+        <service android:name=".service.GPSService"/>
+
+        <service android:name=".service.KeepAppLifeService" />
+        <activity android:name=".login.LoginActivity"/>
+    </application>
+</manifest>

@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="activity"
+            type="com.nfc.cn.MainActivity" />
+
+        <variable
+            name="model"
+            type="com.nfc.cn.vm.MainViewModel" />
+    </data>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/color_white"
+        android:padding="@dimen/dp_10"
+        tools:context=".MainActivity">
+
+        <ImageView
+            android:id="@+id/iv_flag_open_bt"
+            android:layout_width="@dimen/dp_24"
+            android:layout_height="@dimen/dp_24"
+            android:src="@drawable/ic_bluetooth_disabled_black_24dp"
+            android:layout_alignParentRight="true"
+            />
+
+        <ImageView
+            android:id="@+id/iv_flag_open_gps"
+            android:layout_width="@dimen/dp_24"
+            android:layout_height="@dimen/dp_24"
+            android:src="@drawable/ic_location_no_place_black_24dp"
+            android:layout_toLeftOf="@+id/iv_flag_open_bt"
+            android:layout_marginRight="@dimen/dp_5"
+            />
+
+        <ImageView
+            android:id="@+id/iv_flag_open_nfc"
+            android:layout_width="@dimen/dp_24"
+            android:layout_height="@dimen/dp_24"
+            android:src="@drawable/ic_nfc_black_24dp"
+            android:layout_toLeftOf="@+id/iv_flag_open_gps"
+            android:layout_marginRight="@dimen/dp_5"
+            />
+        <TextView
+            android:id="@+id/tv_original1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="接收到设备数据："
+            android:layout_marginTop="@dimen/dp_10"
+            />
+
+        <TextView
+            android:id="@+id/tv_original"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dp_10"
+            android:text="@string/main_original_data_str"
+            android:layout_below="@+id/tv_original1"
+            android:textColor="@color/colorPrimaryDark"
+            />
+
+        <TextView
+            android:id="@+id/tv_reply_dev1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="回复设备数据："
+            android:layout_marginTop="@dimen/dp_10"
+            android:layout_below="@+id/tv_original"
+            />
+
+        <TextView
+            android:id="@+id/tv_reply_dev"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dp_10"
+            android:text="@string/main_original_data_str"
+            android:layout_below="@+id/tv_reply_dev1"
+            android:textColor="@color/colorPrimaryDark"
+            />
+
+        <TextView
+            android:id="@+id/tv_status1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/tv_reply_dev"
+            android:text="设备状态："
+            android:layout_marginTop="@dimen/dp_10"
+            />
+
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dp_10"
+            android:text="@string/main_dev_status_str"
+            android:layout_below="@+id/tv_status1"
+            android:textColor="@color/color_black"
+            />
+
+        <TextView
+            android:id="@+id/tv_server1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/tv_status"
+            android:text="上传数据："
+            android:layout_marginTop="@dimen/dp_10"
+            />
+
+        <TextView
+            android:id="@+id/tv_server"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dp_10"
+            android:text="@string/main_data_up_server_init_str"
+            android:layout_below="@+id/tv_server1"
+            android:textColor="@color/black"
+            />
+
+        <EditText
+            android:id="@+id/et_ble_name"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/dp_50"
+            android:layout_below="@id/tv_server"
+            android:background="@color/color_white"
+            android:hint="默认检查名称为BLE_KEY的设备，如果不是请做更改"
+            android:textColor="@color/color_black"
+            android:textSize="@dimen/text_size_14"
+            />
+
+        <TextView
+            android:id="@+id/tv_ble_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="开始前进行数据填充设置，点击开始连接自行设置"
+            android:layout_below="@+id/et_ble_name"
+            android:textColor="@color/color_black"
+            android:textSize="@dimen/text_size_8"
+            />
+
+        <TextView
+            android:id="@+id/tv_nfc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NFC相关信息："
+            android:layout_below="@+id/tv_ble_name"
+            android:textColor="@color/color_black"
+            android:layout_marginTop="@dimen/dp_10"
+            />
+
+
+        <TextView
+            android:id="@+id/tv_server_udp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/tv_nfc"
+            android:text="UDP服务器状态信息："
+            android:layout_marginTop="@dimen/dp_10"
+            />
+
+        <TextView
+            android:id="@+id/tv_server_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dp_10"
+            android:text="@string/main_data_up_server_init_str"
+            android:layout_below="@+id/tv_server_udp"
+            android:textColor="@color/black"
+            />
+
+        <TextView
+            android:id="@+id/tv_check_data"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dp_10"
+            android:text=""
+            android:layout_below="@+id/tv_server_status"
+            android:textColor="@color/warning"
+            />
+
+        <TextView
+            android:id="@+id/tv_connect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/start_connect_str"
+            android:layout_alignParentBottom="true"
+            android:padding="@dimen/dp_15"
+            android:textColor="@color/color_white"
+            android:background="@color/button_bg"
+            android:textStyle="bold"
+            />
+        <TextView
+            android:id="@+id/tv_location"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:textColor="@color/color_black"
+            />
+    </RelativeLayout>
+</layout>
