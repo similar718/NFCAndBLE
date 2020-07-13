@@ -424,6 +424,19 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
         }
 
         @Override
+        public void startConnNoSupport() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    dataBinding.tvStatus.setText("当前状态：开始连接 不支持连接");
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
         public void connSuccesDevice(BleDevice bleDevice) { // 连接成功
             runOnUiThread(new Runnable() {
                 @Override

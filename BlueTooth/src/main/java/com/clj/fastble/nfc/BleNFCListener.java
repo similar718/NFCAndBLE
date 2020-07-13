@@ -9,6 +9,7 @@ public interface BleNFCListener {
     void scanDevice(); // 扫描到目标设备
     void scanNotDevice(); // 未扫描到目标设备
     void startConnDevice(BleDevice bleDevice); // 开始连接
+    void startConnNoSupport(); // 不支持
     void connSuccesDevice(BleDevice bleDevice); // 连接成功
 
     void getDeviceDataOriginal(String scanDeviceData); // 获取拿到最原始的数据 TODO 未做任何验证

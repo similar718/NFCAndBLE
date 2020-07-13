@@ -4,7 +4,13 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
@@ -19,8 +25,6 @@ import android.util.Log;
 import com.clj.fastble.BleManager;
 import com.clj.fastble.callback.BleGattCallback;
 import com.clj.fastble.callback.BleIndicateCallback;
-import com.clj.fastble.callback.BleNotifyCallback;
-import com.clj.fastble.callback.BleReadCallback;
 import com.clj.fastble.callback.BleScanCallback;
 import com.clj.fastble.callback.BleWriteCallback;
 import com.clj.fastble.data.BleDevice;
@@ -30,29 +34,16 @@ import com.clj.fastble.scan.BleScanRuleConfig;
 import com.clj.fastble.utils.HexUtil;
 
 import java.util.List;
+import java.util.UUID;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 
+import static com.clj.fastble.libs.config.Constants.UUID_SERVICE_ALL;
 import static com.clj.fastble.libs.config.Constants.UUID_SERVICE_READ;
 import static com.clj.fastble.libs.config.Constants.UUID_SERVICE_WRITE;
-import static com.clj.fastble.libs.config.Constants.characteristic_uuid;
 
 public class BleNFCManager {
-    static final String mDataStart = "020106"; // 开始的数据是固定的
-    static final String mDataEnd = "9c"; // 开始的数据是固定的
-    static final String mDataEnd_ = "9C"; // 开始的数据是固定的
-    private static final int DATA_LENGTH_35 = 70; // 定位终端数据包格式 三种 TODO 停止 启动 带有坐标
-    private static final int DATA_LENGTH_25 = 50; // 终端回复数据包格式
-    private static final int DATA_LENGTH_33 = 66; // APP回复终端数据包格式
-    private static final int DATA_LENGTH_7 = 14; // NFC数据包格式（NFC数据格式）
-    private static final int APP_DATA_LENGTH_21 = 42; // APP上报停止/启动事件数据包格式（APP上报停止/启动事件数据格式）
-    private static final int APP_DATA_LENGTH_18 = 36; // APP上报任务期间手持坐标数据包格式
-    private static final int APP_DATA_LENGTH_10 = 20; // APP查询数据包格式（APP上报查询事件数据格式）
-    private static final int APP_DATA_LENGTH_22 = 44; // APP上报车辆人员ID信息数据包格式（APP上报车辆人员ID信息数据格式）
-    private static final int APP_DATA_LENGTH_16 = 32; // APP配对数据包格式（APP上报RFID与设备MAC配对数据格式）
-    private static final int APP_DATA_LENGTH_11 = 22; // APP维修数据包格式（ APP上报维修数据格式）
-
-
     // 单例模式
     private BleNFCManager() {
 
@@ -150,26 +141,9 @@ public class BleNFCManager {
         }
     }
 
-    /**
-     * 设置最小的RRSI TODO
-     * @param minRssi
-     */
-    private void setMinRssi(long minRssi){
-        Constants.mMinRssi = minRssi;
-    }
-
-    /**
-     * 获取最小的RSSI TODO
-     * @return
-     */
-    private long getMinRssi(){
-        return Constants.mMinRssi;
-    }
-
     // 插件监听的实例化
     private BleNFCListener mBlueToothListener;
 
-    // 获取设备信息 TODO
     public void getBleNFCInfo(){
         setScanRule();
         startScan();
@@ -196,7 +170,7 @@ public class BleNFCManager {
     }
 
     /**
-     * TODO 是否扫描到可用设备 用BLE_KEY蓝牙名称判断
+     * TODO 是否扫描到可用设备
      */
     private boolean mIsScanDes = false;
 
@@ -214,18 +188,15 @@ public class BleNFCManager {
                 super.onLeScan(bleDevice);
             }
 
+            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
             @Override
             public void onScanning(BleDevice bleDevice) {
                 if (Constants.mBleName.equals(bleDevice.getName())){ // TODO 判断是否是我们需要的设备名称的设备
                     if (!BleManager.getInstance().isConnected(bleDevice)) { // 判断设备名称是正常的设备是否已经被连接
-//                        if (bleDevice.getRssi() >= getMinRssi()){ // 在规定的rssi范围内进行连接 TODO 目前没有要求
-                            mIsScanDes = true;
-                            mBlueToothListener.scanDevice(); // 已经扫描到一个可用设备
-                            BleManager.getInstance().cancelScan(); // 已经找到可以连接的设备 停止扫描设备
-                            connect(bleDevice); // 连接当前设备
-//                        } else { // 未在rssi的范围内不进行操作
-//                            mBlueToothListener.scanDeviceMinRSSI();
-//                        }
+                        mIsScanDes = true;
+                        mBlueToothListener.scanDevice(); // 已经扫描到一个可用设备
+                        BleManager.getInstance().cancelScan(); // 已经找到可以连接的设备 停止扫描设备
+                        connect(bleDevice); // 连接当前设备
                     }
                 }
             }
@@ -241,7 +212,132 @@ public class BleNFCManager {
         });
     }
 
+
+//    private UUID SERVICE_UUID = UUID.fromString("0000fff0-0000-1000-8000-00805f9b34fb");//服务UUID
+//    private UUID WRITE_CHARACTERISTIC = UUID.fromString("0000fff1-0000-1000-8000-00805f9b34fb");//写UUID
+//    private UUID READ_CHARACTERISTIC = UUID.fromString("0000fff4-0000-1000-8000-00805f9b34fb");//读UUID
+
+    private BluetoothGatt bluetoothGatt;
+
+    private BluetoothGattCharacteristic writeCharacteristic;
+
+    private String TAG = BleNFCManager.class.getSimpleName();
+
+    /**
+     * 处理蓝牙设备连接 操作
+     *
+     * @param gatt
+     * @param newState
+     */
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private void connectionStateChange(final BluetoothGatt gatt, int newState) {
+        /**
+         * 当前蓝牙设备已经连接
+         */
+        if (newState == BluetoothProfile.STATE_CONNECTED) {
+            Log.e(TAG, "蓝牙设备连接成功");
+            //获取ble设备上面的服务
+            gatt.discoverServices();
+            mBlueToothListener.connSuccesDevice(null);
+        }
+
+        /**
+         * 当前设备无法连接
+         */
+        if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+            Log.e(TAG, "蓝牙设备连接失败");
+            mBlueToothListener.connFailedDevice(null);
+        }
+    }
+
+
+    /**
+     * 连接蓝牙设备结果回调
+     */
+    BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
+
+        /**
+         * 连接设备
+         * @param gatt
+         * @param status
+         * @param newState
+         */
+        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            super.onConnectionStateChange(gatt, status, newState);
+            mBlueToothListener.startConnDevice(null); // 开始连接设备
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "GATT_SUCCESS");
+                connectionStateChange(gatt, newState);
+            } else if (status == BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED) {
+                Log.e(TAG, "不支持");
+                mBlueToothListener.startConnNoSupport();
+            }
+        }
+        /**
+         * 发现设备服务
+         * @param gatt
+         * @param status
+         */
+        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+        @Override
+        public void onServicesDiscovered(final BluetoothGatt gatt, int status) {
+            super.onServicesDiscovered(gatt, status);
+
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                boolean flag = enableNotification(gatt);
+                if (flag) {
+                    Log.e(TAG, "蓝牙设备已连接");
+                    mBlueToothListener.connSuccesDevice(null);
+                } else {
+                    Log.e(TAG, "蓝牙设备已断开连接");
+                    mBlueToothListener.disConnDevice(null);
+                }
+            }
+        }
+
+        /**
+         * 写数据
+         * @param gatt
+         * @param characteristic
+         * @param status
+         */
+        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            super.onCharacteristicWrite(gatt, characteristic, status);
+            //写数据成功
+            if (BluetoothGatt.GATT_SUCCESS == status && UUID_SERVICE_WRITE.equals(characteristic.getUuid())) {
+                Log.e(TAG, "write onCharacteristicWrite GATT_SUCCESS---" + status);
+            } else if (BluetoothGatt.GATT_FAILURE == status && UUID_SERVICE_WRITE.equals(characteristic.getUuid())) {
+                Log.e(TAG, "write onCharacteristicWrite GATT_FAILURE" + status);
+            }
+        }
+
+        /**
+         * 通知数据，往设备写入数据之后，接收设备返回的数据
+         * @param gatt
+         * @param characteristic
+         */
+        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            super.onCharacteristicChanged(gatt, characteristic);
+            Log.e(TAG, " onCharacteristicChanged ");
+            //设备传输的数据包
+            byte[] packData = characteristic.getValue();
+            mBlueToothListener.getNotifyConnDeviceSuccess(HexUtil.encodeHexStr(packData));
+        }
+    };
+
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void connect(final BleDevice bleDevice) {
+//        BluetoothDevice bluetoothDevice = bleDevice.getDevice();
+//        //连接蓝牙设备
+//        bluetoothGatt = bluetoothDevice.connectGatt(mContext, false, bluetoothGattCallback);
+
         BleManager.getInstance().connect(bleDevice, new BleGattCallback() {
             @Override
             public void onStartConnect() {
@@ -253,116 +349,28 @@ public class BleNFCManager {
                 mBlueToothListener.connFailedDevice((BleDevice) bleDevice); // 设备连接失败
             }
 
+            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
             @Override
-            public void onConnectSuccess(final BleDevice bleDevice, BluetoothGatt gatt, int status) {
+            public void onConnectSuccess(final BleDevice bleDevice, final BluetoothGatt gatt, int status) {
                 mBlueToothListener.connSuccesDevice((BleDevice) bleDevice); // 成功连接设备  准备验证数据
+                // 需要打开notify 准备接收数据
 
-//                setWriteData(bleDevice,(byte) 0x01);
+                BleManager.getInstance().indicate(bleDevice, UUID_SERVICE_READ,UUID_SERVICE_ALL, new BleIndicateCallback() {
+                    @Override
+                    public void onIndicateSuccess() {
+                        mBlueToothListener.getNotifyConnDeviceSuccess("打开Indicate成功");
+                    }
 
-//                BleManager.getInstance().indicate(bleDevice,
-//                        UUID_SERVICE_READ,
-//                        characteristic_uuid,
-//                        new BleIndicateCallback() {
-//                            @Override
-//                            public void onIndicateSuccess() {
-//
-//                            }
-//
-//                            @Override
-//                            public void onIndicateFailure(BleException exception) {
-//
-//                            }
-//
-//                            @Override
-//                            public void onCharacteristicChanged(byte[] data) {
-//                                // 打开通知后，设备发过来的数据将在这里出现
-//                                String scancord =  HexUtil.formatHexString(bleDevice.getScanRecord());
-//                                mBlueToothListener.getConnDeviceData(scancord);
-//                            }
-//                        });
+                    @Override
+                    public void onIndicateFailure(BleException exception) {
+                        mBlueToothListener.getNotifyConnDeviceFail("打开Indicate失败");
+                    }
 
-                BleManager.getInstance().notify(bleDevice,
-                        UUID_SERVICE_READ,
-                        characteristic_uuid,
-                        new BleNotifyCallback() {
-                            @Override
-                            public void onNotifySuccess() {
-                                // 打开通知操作成功
-                                mBlueToothListener.getNotifyConnDeviceSuccess("打开通知操作成功");
-                            }
-
-                            @Override
-                            public void onNotifyFailure(BleException exception) {
-                                // 打开通知操作失败
-                                mBlueToothListener.getNotifyConnDeviceFail("打开通知操作失败");
-                            }
-
-                            @Override
-                            public void onCharacteristicChanged(byte[] data) {
-                                // 打开通知后，设备发过来的数据将在这里出现
-                                String scancord =  HexUtil.formatHexString(bleDevice.getScanRecord());
-                                mBlueToothListener.getNotifyConnDeviceData(scancord);
-                            }
-                        });
-
-                // 成功获取到数据进行判断当前数据的是否是我要的格式
-                // 广播指示 02 01 06  数据固定 2 bytes
-
-//                if (bleDevice.getRssi() < getMinRssi()){ // TODO 只要获取的RSSI的值大于当前设置的RSSI的值就可以正常的操作蓝牙设备
-//                    // 当前所获取的信息不符合 断开连接
-//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) { // 18
-//                        setCloseConn(bleDevice);
-//                        gatt.disconnect();
-//                        gatt.close();
-//                        mBlueToothListener.connNotDesDevice((BleDevice) bleDevice);
-//                    }
-//                    return;
-//                }
-
-                /**
-                 * 02 01 06 05 02 c0 ff e0
-                 * ff 12 ff 0d 00 61 03 36
-                 * 00 02 00 00 00 15 12 29
-                 * f8 e6 a0 c5 08 09 42 4c
-                 * 45 5f 4b 45 59 05 12 0a
-                 * 00 14 00 02 0a 00 00 00
-                 * 00 00 00 00 00 00 00 00
-                 * 00 00 00 00 00 00 ----------------------31个字节数据 需要防止没有数据的情况使用的是00填充的数据
-                 */
-                // 开始解析数据 TODO ——————————————————————————————————————————————————————
-//                String scancord = HexUtil.formatHexString(bleDevice.getScanRecord()); // 设备传递过来的数据
-//                // TODO ******************将拿取到的数据开放给研发者
-//                mBlueToothListener.getDeviceDataOriginal(scancord);
-                // TODO ******************
-
-//                // TODO 获取当前字段中的最后一个9c结尾符号的位置  然后做截取
-//                String splitDataStr = scancord.substring(0, scancord.lastIndexOf(mDataEnd) + 2);
-//
-//                // 将截取后的代码复制给需要进行解析的主字段的参数
-//                scancord = splitDataStr;
-//                // TODO 可能上面判断错误
-//                String datas = scancord.substring(0, mDataStart.length());
-//                String datae = scancord.substring(scancord.length() - 2);
-//                // TODO 查看数据的开始数据是否是我们需要的固定元素
-//                if (scancord.startsWith(mDataStart) && scancord.endsWith(mDataEnd)) { // 检查开始元素是不是和固定数据一样 是不是以9c结尾 一样的情况
-//                    // TODO  进一步的解析
-//                    parseData(scancord, bleDevice, gatt);
-//                } else if (datas.equals(mDataStart) && datae.endsWith(mDataEnd)) { // 固定数据固定的情况 前面和后面固定
-//                    // TODO  进一步的解析
-//                    parseData(scancord, bleDevice, gatt);
-//                } else if (datae.endsWith(mDataEnd)) { // 最后两位是固定数据
-//                    parseData(scancord, bleDevice, gatt);
-//                } else { // TODO 发现开始和结尾都不是我要的数据
-//                    // 当前所获取的信息不符合 断开连接
-//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) { // 18
-//                        setCloseConn(bleDevice);
-//                        gatt.disconnect();
-//                        gatt.close();
-//                        mBlueToothListener.connNotDesDevice((BleDevice) bleDevice); // 监听状态取消连接
-//                    }
-//                }
-
-                // 结束解析数据 TODO ——————————————————————————————————————————————————————
+                    @Override
+                    public void onCharacteristicChanged(byte[] data) {
+                        mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
+                    }
+                });
             }
             @Override
             public void onDisConnected(boolean isActiveDisConnected, BleDevice bleDevice, BluetoothGatt gatt, int status) {
@@ -371,174 +379,67 @@ public class BleNFCManager {
         });
     }
 
-    private void parseData(String data,BleDevice bleDevice,BluetoothGatt gatt){
-        // 获取拿到数据的长度
-        int length = data.length();
-//        switch (length){
-//            case DATA_LENGTH_35: // 35 字段的时候的解析情况
-                /**
-                 * （注：三种类型的数据包长度一样，34字节；
-                 * 停止广播有效字段：IP/端口、Dev ID1、启动时间、电池电压、MAC地址；
-                 *       启动广播有效字段：IP/端口、Dev ID1、启动时间、电池电压、MAC地址；
-                 *       带坐标广播有效字段：IP/端口、Dev ID1、启动时间、电池电压、经纬度坐标、
-                 * 经纬度标识、MAC地址。）
-                 * 0x02 0x01 0x06 0x06 0x04 0x04 0x02 0x03 0x01  0x01  0xC0 0xA8 0x01 0x01 0x44 0x23   0x2F 0x0A  0x1E 0x1A 0x16  0x67 0x1A 0x16 0x12 0xFF 0xDD 0x00 0x44 0x33 0x22  0x9C
-                 *
-                 * 数据段解释示意：
-                 * 0x02 0x01 0x06 -> 包头
-                 * 0x06 0x04 0x04 0x02 0x03 0x01 -> UUID
-                 * 0x01 -> 代表停放事件
-                 * 0xC0 0xA8 0x01 0x01 -> 192 168 1 1 -> IP：192.168.1.1
-                 * 0x41 0x41 -> 01000001 01000001 -> 0100：B4(十六进制) 0001：B3(十六进制) 0100：B2(十六进制) 0001：B1(十六进制) -> Dev ID: B4 B3 B2 B1
-                 * 0x44 0x23 -> 0x2344 -> 端口：9028
-                 * 0x41 ->  01000001(二进制) -> 0100：4（十进制）0100:1（十进制）->电池电压：4.1
-                 * 0x0A ->停车前10分钟启动
-                 * 0x1E 0x1A 0x16  0x67 0x1A 0x16 -> 经纬度数据：30°26' 22" ,103°26' 22"
-                 * 0x12 ->卫星数：12
-                 * 0x01 ->代表NE北纬、东经
-                 * 0xFF 0xDD 0x00 0x44 0x33 0x22 -> 序列号：FFDD00443322
-                 * 0x9C ->结束符
-                 */
-                // TODO 前面符合信息 开始校验数据的格式是否正确 不做解析不做解析不做解析 只是验证
-        setReadData(bleDevice); // 读取数据
-//        if (length > 36) { // 广播不做操作
-//            // 拿到mac所有的数据
-//            String mac = data.substring(6, 18);
-//            // 分析出Mac的B1~B4
-//            String mac_B1 = mac.substring(5, 6); // 0x04
-//            String mac_B2 = mac.substring(10, 11); // 0x03
-//            String mac_B3 = mac.substring(1, 2); // 0x02
-//            String mac_B4 = mac.substring(7, 8); // 0x02
-//            // 获取DevID数据
-//            String devId = data.substring(32, 36); // B4 B3 B2 B1 TODO 有问题 怎么进行转换的
-//            StringBuilder macb = new StringBuilder();
-//            macb.append(mac_B4).append(mac_B3).append(mac_B2).append(mac_B1);
-//            String mac_dev = macb.toString();
-//            if (devId.equals(mac_dev)) { // 表示验证成功  开始回复数据
-//                // TODO 替换拿到的数据 18~20 之间
-//                String databefore = data.substring(0, 18);
-//                String dataafter = data.substring(19);
-//
-//                StringBuilder result = new StringBuilder();
-//                result.append(databefore).append("1").append(dataafter); // 将数据更改并且合并 回传给客户
-//
-//                mBlueToothListener.getDeviceData(result.toString());
-//                // 进行验证 验证通过将数据更改并上传服务器
-////                setWriteData(bleDevice); // TODO  已做更改
-//            } else {
-//                // TODO  已做更改
-////                mBlueToothListener.checkDataIsFailure(mac, devId, mac_dev, data);
-////                //  获取到数据之后开始断开连接
-////                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) { // 18
-////                    setCloseConn(bleDevice);
-////                    gatt.disconnect();
-////                    gatt.close();
-////                    mBlueToothListener.connNotDesDevice((BleDevice) bleDevice);
-////                }
-//            }
-//        }
 
-
-//                String devId_b4 = data.substring(22, 24);
-//                String devId_b1 = data.substring(24, 26);
-//                String scanMac = data.substring(42, 54);
-//                String mac_b1 = scanMac.substring(4, 6);
-//                String mac_b4 = scanMac.substring(6, 8);
-//
-//                if (scanMac.contains("000000000000")) {
-//                    setOptionsData(scancord, bleDevice.getRssi());
-//                    // 获取成功之后再进行Indicate的执行和读取和发送消息  将在这里开始运行
-//                    setWriteData(bleDevice);
-//                } else if (devId_b1.equals(mac_b1) && devId_b4.equals(mac_b4)) {
-//                    setOptionsData(scancord, bleDevice.getRssi());
-//                    // 获取成功之后再进行Indicate的执行和读取和发送消息  将在这里开始运行
-//                    setWriteData(bleDevice);
-//                } else {
-//                    // 当前所获取的信息不符合 断开连接
-//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) { // 18
-//                        setCloseConn(bleDevice);
-//                        gatt.disconnect();
-//                        gatt.close();
-//                        mBlueToothListener.connNotDesDevice((BleDevice) bleDevice);
-//                    }
-//                }
-
-//                break;
-//
-//            default:
-//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) { // 18
-//                    setCloseConn(bleDevice);
-//                    gatt.disconnect();
-//                    gatt.close();
-//                    mBlueToothListener.connNotDesDevice((BleDevice) bleDevice);
-//                }
-//                break;
-//        }
+    /**
+     * 订阅蓝牙通知消息，在onCharacteristicChanged()回调中接收蓝牙返回的消息
+     *
+     * @param gatt
+     * @return
+     */
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public boolean enableNotification(BluetoothGatt gatt) {
+        boolean success = false;
+        BluetoothGattService service = gatt.getService(UUID.fromString(UUID_SERVICE_ALL));
+        if (service != null) {
+            BluetoothGattCharacteristic characteristic = findNotifyCharacteristic(service);
+            if (characteristic != null) {
+                success = gatt.setCharacteristicNotification(characteristic, true);
+                gatt.readCharacteristic(characteristic);
+                if (success) {
+                    for (BluetoothGattDescriptor dp : characteristic.getDescriptors()) {
+                        if (dp != null) {
+                            if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
+                                dp.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                            } else if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
+                                dp.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+                            }
+                            int writeType = characteristic.getWriteType();
+                            Log.e(BleNFCManager.class.getSimpleName(), "enableNotification: " + writeType);
+                            characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+                            gatt.writeDescriptor(dp);
+                            characteristic.setWriteType(writeType);
+                        }
+                    }
+                }
+            }
+        }
+        return success;
     }
 
-    private void setReadData(final BleDevice bleDevice){
-//        BleManager.getInstance().notify(bleDevice,
-//                uuid_service,
-//                characteristic_uuid,
-//                new BleNotifyCallback() {
-//                    @Override
-//                    public void onNotifySuccess() {
-//
-//                    }
-//
-//                    @Override
-//                    public void onNotifyFailure(BleException exception) {
-//
-//                    }
-//
-//                    @Override
-//                    public void onCharacteristicChanged(byte[] data) {
-//
-//                    }
-//                });
-//
-
-        BleManager.getInstance().read(
-            bleDevice,
-            UUID_SERVICE_READ,
-            characteristic_uuid,
-                new BleReadCallback() {
-                    @Override
-                    public void onReadSuccess(byte[] data) {
-                        // 读特征值数据成功
-//                        Log.e("ooooooooo","data = " + HexUtil.encodeHexStr(data));
-                        String scancord =  HexUtil.formatHexString(bleDevice.getScanRecord());
-                        // 成功获取到数据进行判断当前数据的是否是我要的格式
-                        // 广播指示 02 01 06  数据固定 2 bytes
-                        // UUID 05 02 c0 ff e0 ff 数据固定 6 bytes
-                        /**
-                         *  自定义数据
-                         *      长度 12 数据固定 1 bytes
-                         *      类型 FF 数据固定 1 bytes
-                         *      DevID 0D 00 数据固定 2 bytes
-                         *      电量 2 bytes
-                         *      芯片温度 2 bytes
-                         *      按键次数 4 bytes
-                         *      mac地址 6bytes
-                         *      发射功率 c5 数据固定 1bytes
-                         */
-                        // 02 01 06 05 02 c0 ff e0 ff 12 ff 0d 00 61 03 36 00 02 00 00 00 15 12 29 f8 e6 a0 c5 08 09 42 4c 45 5f 4b 45 59 05 12 0a 00 14 00 02 0a 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-
-                        mBlueToothListener.getConnDeviceData(scancord);
-
-//                        String datas = scancord.substring(0, mData.length());
-//                        if (mData.equals(datas)){
-//                            setOptionsData(scancord,bleDevice.getRssi());
-//                            // 获取成功之后再进行Indicate的执行和读取和发送消息  将在这里开始运行
-//                            setWriteData(bleDevice);
-//                        }
-                    }
-
-                    @Override
-                    public void onReadFailure(BleException exception) {
-                        // 读特征值数据失败
-                    }
-                });
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private BluetoothGattCharacteristic findNotifyCharacteristic(BluetoothGattService service) {
+        BluetoothGattCharacteristic characteristic = null;
+        List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
+        for (BluetoothGattCharacteristic c : characteristics) {
+            if ((c.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 && UUID_SERVICE_READ.equals(c.getUuid())) {
+                characteristic = c;
+                break;
+            }
+            //用于通讯的UUID character
+            if (c.getUuid().equals(UUID_SERVICE_WRITE)) {
+                writeCharacteristic = c;
+            }
+        }
+        if (characteristic != null) {
+            return characteristic;
+        }
+        for (BluetoothGattCharacteristic c : characteristics) {
+            if ((c.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0 && UUID_SERVICE_READ.equals(c.getUuid())) {
+                characteristic = c;
+                break;
+            }
+        }
+        return characteristic;
     }
 
     public void setCloseConn(BleDevice bleDevice){
@@ -552,7 +453,7 @@ public class BleNFCManager {
         BleManager.getInstance().write(
                 bleDevice,
                 UUID_SERVICE_WRITE,
-                characteristic_uuid,
+                UUID_SERVICE_ALL,
                 data,
                 new BleWriteCallback() {
                     @Override

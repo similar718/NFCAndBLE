@@ -9,6 +9,20 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.4.0'
+
+        // tinkersupport插件, 其中lastest.release指拉取最新版本，也可以指定明确版本号，例如1.0.4
+        classpath "com.tencent.bugly:tinker-support:1.1.2"
+
+//        注意：自tinkersupport 1.0.3版本起无需再配tinker插件的classpath。
+//        版本对应关系:
+//        tinker-support 1.1.2 对应 tinker 1.9.6
+//        tinker-support 1.1.1 对应 tinker 1.9.1
+//        tinker-support 1.0.9 对应 tinker 1.9.0
+//        tinker-support 1.0.8 对应 tinker 1.7.11
+//        tinker-support 1.0.7 对应 tinker 1.7.9
+//        tinker-support 1.0.4 对应 tinker 1.7.7
+//        tinker-support 1.0.3 对应 tinker 1.7.6
+//        tinker-support 1.0.2 对应 tinker 1.7.5（需配置tinker插件的classpath）
         
 
         // NOTE: Do not place your application dependencies here; they belong
