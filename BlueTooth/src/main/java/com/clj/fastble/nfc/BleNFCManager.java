@@ -28,6 +28,7 @@ import android.util.Log;
 import com.clj.fastble.BleManager;
 import com.clj.fastble.callback.BleGattCallback;
 import com.clj.fastble.callback.BleIndicateCallback;
+import com.clj.fastble.callback.BleNotifyCallback;
 import com.clj.fastble.callback.BleScanCallback;
 import com.clj.fastble.callback.BleWriteCallback;
 import com.clj.fastble.data.BleDevice;
@@ -345,6 +346,9 @@ public class BleNFCManager {
             @Override
             public void onStartConnect() {
                 mBlueToothListener.startConnDevice((BleDevice) bleDevice); // 开始连接设备
+                Looper.prepare();
+                mHandler.sendEmptyMessageDelayed(0,2000);
+                Looper.loop();
             }
 
             @Override
@@ -358,7 +362,7 @@ public class BleNFCManager {
                 mBlueToothListener.connSuccesDevice((BleDevice) bleDevice); // 成功连接设备  准备验证数据
                 // 需要打开notify 准备接收数据
                 mConnectDevice = bleDevice;
-                BleManager.getInstance().indicate(bleDevice, UUID_SERVICE_READ,UUID_SERVICE_ALL, new BleIndicateCallback() {
+                /*BleManager.getInstance().indicate(bleDevice, UUID_SERVICE_READ,UUID_SERVICE_ALL, new BleIndicateCallback() {
                     @Override
                     public void onIndicateSuccess() {
                         mBlueToothListener.getNotifyConnDeviceSuccess("打开Indicate成功");
@@ -370,6 +374,23 @@ public class BleNFCManager {
                     @Override
                     public void onIndicateFailure(BleException exception) {
                         mBlueToothListener.getNotifyConnDeviceFail("打开Indicate失败");
+                    }
+
+                    @Override
+                    public void onCharacteristicChanged(byte[] data) {
+                        mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
+                    }
+                });*/
+
+                BleManager.getInstance().notify(bleDevice, UUID_SERVICE_ALL, UUID_SERVICE_READ, new BleNotifyCallback() {
+                    @Override
+                    public void onNotifySuccess() {
+                        mBlueToothListener.getNotifyConnDeviceSuccess("打开notify成功");
+                    }
+
+                    @Override
+                    public void onNotifyFailure(BleException exception) {
+                        mBlueToothListener.getNotifyConnDeviceFail("打开notify失败");
                     }
 
                     @Override
@@ -396,10 +417,9 @@ public class BleNFCManager {
                     mBlueToothListener.getNotifyConnDeviceFail("连接不上 失败");
                     mBlueToothListener.disConnDevice(mConnectDevice);
                 }
-            }
+            }6
         }
     };
-
 
     /**
      * 订阅蓝牙通知消息，在onCharacteristicChanged()回调中接收蓝牙返回的消息
