@@ -20,6 +20,9 @@ import android.location.LocationManager;
 import android.location.LocationProvider;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 
 import com.clj.fastble.BleManager;
@@ -354,11 +357,14 @@ public class BleNFCManager {
             public void onConnectSuccess(final BleDevice bleDevice, final BluetoothGatt gatt, int status) {
                 mBlueToothListener.connSuccesDevice((BleDevice) bleDevice); // 成功连接设备  准备验证数据
                 // 需要打开notify 准备接收数据
-
+                mConnectDevice = bleDevice;
                 BleManager.getInstance().indicate(bleDevice, UUID_SERVICE_READ,UUID_SERVICE_ALL, new BleIndicateCallback() {
                     @Override
                     public void onIndicateSuccess() {
                         mBlueToothListener.getNotifyConnDeviceSuccess("打开Indicate成功");
+                        Looper.prepare();
+                        mHandler.sendEmptyMessageDelayed(0,2000);
+                        Looper.loop();
                     }
 
                     @Override
@@ -378,6 +384,21 @@ public class BleNFCManager {
             }
         });
     }
+
+    BleDevice mConnectDevice;
+
+    private Handler mHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            if (mConnectDevice != null){
+                if (!BleManager.getInstance().isConnected(mConnectDevice)) {
+                    BleManager.getInstance().disconnect(mConnectDevice);
+                    mBlueToothListener.getNotifyConnDeviceFail("连接不上 失败");
+                    mBlueToothListener.disConnDevice(mConnectDevice);
+                }
+            }
+        }
+    };
 
 
     /**
