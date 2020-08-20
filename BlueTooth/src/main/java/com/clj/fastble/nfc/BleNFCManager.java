@@ -346,9 +346,9 @@ public class BleNFCManager {
             @Override
             public void onStartConnect() {
                 mBlueToothListener.startConnDevice((BleDevice) bleDevice); // 开始连接设备
-                Looper.prepare();
-                mHandler.sendEmptyMessageDelayed(0,2000);
-                Looper.loop();
+//                Looper.prepare();
+//                mHandler.sendEmptyMessageDelayed(0,2000);
+//                Looper.loop();
             }
 
             @Override
@@ -362,6 +362,8 @@ public class BleNFCManager {
                 mBlueToothListener.connSuccesDevice((BleDevice) bleDevice); // 成功连接设备  准备验证数据
                 // 需要打开notify 准备接收数据
                 mConnectDevice = bleDevice;
+
+                setWriteData(bleDevice, (byte) 0x8E);
                 /*BleManager.getInstance().indicate(bleDevice, UUID_SERVICE_READ,UUID_SERVICE_ALL, new BleIndicateCallback() {
                     @Override
                     public void onIndicateSuccess() {
@@ -382,22 +384,22 @@ public class BleNFCManager {
                     }
                 });*/
 
-                BleManager.getInstance().notify(bleDevice, UUID_SERVICE_ALL, UUID_SERVICE_READ, new BleNotifyCallback() {
-                    @Override
-                    public void onNotifySuccess() {
-                        mBlueToothListener.getNotifyConnDeviceSuccess("打开notify成功");
-                    }
-
-                    @Override
-                    public void onNotifyFailure(BleException exception) {
-                        mBlueToothListener.getNotifyConnDeviceFail("打开notify失败");
-                    }
-
-                    @Override
-                    public void onCharacteristicChanged(byte[] data) {
-                        mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
-                    }
-                });
+//                BleManager.getInstance().notify(bleDevice, UUID_SERVICE_ALL, UUID_SERVICE_READ, new BleNotifyCallback() {
+//                    @Override
+//                    public void onNotifySuccess() {
+//                        mBlueToothListener.getNotifyConnDeviceSuccess("打开notify成功");
+//                    }
+//
+//                    @Override
+//                    public void onNotifyFailure(BleException exception) {
+//                        mBlueToothListener.getNotifyConnDeviceFail("打开notify失败");
+//                    }
+//
+//                    @Override
+//                    public void onCharacteristicChanged(byte[] data) {
+//                        mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
+//                    }
+//                });
             }
             @Override
             public void onDisConnected(boolean isActiveDisConnected, BleDevice bleDevice, BluetoothGatt gatt, int status) {
@@ -417,7 +419,7 @@ public class BleNFCManager {
                     mBlueToothListener.getNotifyConnDeviceFail("连接不上 失败");
                     mBlueToothListener.disConnDevice(mConnectDevice);
                 }
-            }6
+            }
         }
     };
 
@@ -489,7 +491,7 @@ public class BleNFCManager {
         }
     }
 
-    private void setWriteData(BleDevice bleDevice,byte datas){
+    private void setWriteData(final BleDevice bleDevice,byte datas){
         final byte[] data = {datas};
         BleManager.getInstance().write(
                 bleDevice,
@@ -500,13 +502,48 @@ public class BleNFCManager {
                     @Override
                     public void onWriteSuccess(int current, int total, byte[] justWrite) {
                         // 发送数据到设备成功（分包发送的情况下，可以通过方法中返回的参数可以查看发送进度）
-                        mBlueToothListener.replyDataToDeviceSuccess(new String(data));
+                        mBlueToothListener.replyDataToDeviceSuccess(toBinaryString(data));
+
+
+                        BleManager.getInstance().notify(bleDevice, UUID_SERVICE_ALL, UUID_SERVICE_READ, new BleNotifyCallback() {
+                            @Override
+                            public void onNotifySuccess() {
+                                mBlueToothListener.getNotifyConnDeviceSuccess("打开notify成功");
+                            }
+
+                            @Override
+                            public void onNotifyFailure(BleException exception) {
+                                mBlueToothListener.getNotifyConnDeviceFail("打开notify失败");
+                            }
+
+                            @Override
+                            public void onCharacteristicChanged(byte[] data) {
+                                mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
+                            }
+                        });
                     }
 
                     @Override
                     public void onWriteFailure(BleException exception) {
                         // 发送数据到设备失败
-                        mBlueToothListener.replyDataToDeviceFailed(new String(data));
+                        mBlueToothListener.replyDataToDeviceFailed(toBinaryString(data));
+
+                        BleManager.getInstance().notify(bleDevice, UUID_SERVICE_ALL, UUID_SERVICE_READ, new BleNotifyCallback() {
+                            @Override
+                            public void onNotifySuccess() {
+                                mBlueToothListener.getNotifyConnDeviceSuccess("打开notify成功");
+                            }
+
+                            @Override
+                            public void onNotifyFailure(BleException exception) {
+                                mBlueToothListener.getNotifyConnDeviceFail("打开notify失败");
+                            }
+
+                            @Override
+                            public void onCharacteristicChanged(byte[] data) {
+                                mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
+                            }
+                        });
                     }
                 });
     }
@@ -570,4 +607,19 @@ public class BleNFCManager {
         public void onProviderDisabled(String provider) {
         }
     };
+
+    public static String toBinaryString(byte[] var0) {
+        String var1 = "";
+        for(int var2 = 0; var2 < var0.length; ++var2) {
+            byte var3 = var0[var2];
+            for(int var4 = 0; var4 < 8; ++var4) {
+                int var5 = var3 >>> var4 & 1;
+                var1 = var1 + var5;
+            }
+            if (var2 != var0.length - 1) {
+                var1 = var1 + " ";
+            }
+        }
+        return var1;
+    }
 }

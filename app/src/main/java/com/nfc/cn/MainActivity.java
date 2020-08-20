@@ -25,36 +25,28 @@ import com.clj.fastble.data.BleDevice;
 import com.clj.fastble.libs.config.Constants;
 import com.clj.fastble.libs.utils.GPSUtils;
 import com.clj.fastble.nfc.BleNFCListener;
-import com.clj.fastble.nfc.BleNFCManager;
+import com.nfc.cn.application.NFCBleApplication;
+import com.nfc.cn.ble.BleDeviceManager;
+import com.nfc.cn.ble.ScanConnectDeviceCallback;
 import com.nfc.cn.databinding.ActivityMainBinding;
-import com.nfc.cn.http.HttpUtil;
 import com.nfc.cn.listener.SocketListener;
 import com.nfc.cn.nfcres.NfcHandler;
 import com.nfc.cn.nfcres.NfcView;
 import com.nfc.cn.service.GPSService;
 import com.nfc.cn.service.KeepAppLifeService;
-import com.nfc.cn.udp.UDPClient;
-import com.nfc.cn.udp.UDPServer;
 import com.nfc.cn.udp.UDPThread;
 import com.nfc.cn.utils.NetWorkUtils;
 import com.nfc.cn.vm.MainViewModel;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.FormBody;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBinding> {
 
@@ -112,6 +104,7 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
         return viewModel;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     protected void initData() {
         dataBinding.setModel(viewModel); // 初始化数据
@@ -210,6 +203,7 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
     // 主线程的Handler用来刷新界面
     @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
+        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
         @Override
         public void handleMessage(@NonNull Message msg) {
             // 由主线程中的Looper不断的loop将handler里面的信息不断的轮询，将符合要求的数据dispatchMessage分发
@@ -217,7 +211,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             switch (msg.what){
                 case HANDLER_INIT_IMAGEVIEW:
                     mIsOpenGPS = GPSUtils.isOPen(mContext);
-                    mIsOpenBT = BleNFCManager.getInstance().BleIsOpen();
+//                    mIsOpenBT = BleNFCManager.getInstance().BleIsOpen(); // TODO
+                    mIsOpenBT = BleDeviceManager.getInstance().BleIsOpen(); // TODO
 
                     dataBinding.ivFlagOpenBt.setImageResource(mIsOpenBT ? R.drawable.ic_bluetooth_black_24dp : R.drawable.ic_bluetooth_disabled_black_24dp);
                     dataBinding.ivFlagOpenGps.setImageResource(mIsOpenGPS ? R.drawable.ic_location_place_black_24dp : R.drawable.ic_location_no_place_black_24dp);
@@ -245,16 +240,311 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
 
     private void startThread() {
         new Thread(new Runnable() {
+            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             @Override
             public void run() {
-                BleNFCManager.getInstance().getBleNFCInfo();
+//                BleNFCManager.getInstance().getBleNFCInfo(); // TODO
+                BleDeviceManager.getInstance().scanDevice(); // TODO
             }
         }).start();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void initBlueTooth() {
-        BleNFCManager.getInstance().initBleNFC(getApplication(),MainActivity.this,mListener);
+//        BleNFCManager.getInstance().initBleNFC(getApplication(),MainActivity.this,mListener); // TODO
+        BleDeviceManager.getInstance().initBleNFC(NFCBleApplication.getInstance(),MainActivity.this,mScanConnectDeviceCallback); // TODO
     }
+
+
+    private ScanConnectDeviceCallback mScanConnectDeviceCallback = new ScanConnectDeviceCallback() {
+        @Override
+        public void initFailed(byte data) {// TODO  初始化失败 需要配合相关操作之后再重新初始化
+            if (data == (byte) 0x0001){ //没有打开GPS的情况
+                mIsOpenGPS = false;
+                Toast.makeText(mContext,"请打开GPS位置信息",Toast.LENGTH_LONG).show();
+            } else if (data == (byte) 0x0010) { // 判断是否打开蓝牙设备
+                mIsOpenBT  = false;
+                Toast.makeText(mContext,"请打开蓝牙",Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(mContext,"初始化失败，其他情况",Toast.LENGTH_LONG).show();
+            }
+            mInitSuccess = false;
+            mHandler.sendEmptyMessage(HANDLER_INIT_IMAGEVIEW);
+        }
+
+        @Override
+        public void initSuccess() {
+            // 初始化成功 可以正常的扫描设备
+            mInitSuccess = true;
+            if (mClickInit){
+                mClickInit = false;
+                initBleAndStartScan();
+            }
+        }
+
+        @Override
+        public void scanDevice() {// 扫描到目标设备
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mContext, "搜索到目标设备", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "搜索到目标设备");
+                    dataBinding.tvStatus.setText("当前状态：搜索到目标设备正在连接中");
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+
+        }
+
+        @Override
+        public void scanNotDevice() { // 未扫描到目标设备
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mContext, "未搜索到目标设备", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "未搜索到目标设备");
+                    dataBinding.tvStatus.setText("当前状态：未搜索到目标设备 请打开设备之后重试");
+                    isStop = true;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+
+        }
+
+        @Override
+        public void startConnDevice() { // 开始连接
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.e(TAG, "开始连接");
+                    dataBinding.tvStatus.setText("当前状态：开始连接");
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
+        public void startConnNoSupport() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    dataBinding.tvStatus.setText("当前状态：开始连接 不支持连接");
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
+        public void connSuccesDevice() { // 连接成功
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mContext, "连接成功", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "连接成功");
+                    dataBinding.tvStatus.setText("当前状态：连接成功 正准备获取数据");
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
+        public void getDeviceDataOriginal(final String scanDeviceData) { // 拿取到原始的数据
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.e(TAG, "获取到蓝牙原始数据");
+                    dataBinding.tvStatus.setText("当前状态：获取到蓝牙广播数据（原始）");
+                    dataBinding.tvOriginal.setText(scanDeviceData);
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
+        public void checkDataIsFailure(String mac, String devID, String calDevID, String data) { // 校验广播信息失败 devID 与mac不匹配
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    dataBinding.tvStatus.setText("当前状态：获取到蓝牙广播数据Mac与DevID校验失败");
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                    // 拼接校验结果和数据信息
+                    StringBuilder checkData = new StringBuilder();
+                    checkData
+                            .append("mac: " + mac + "\n")
+                            .append("devId: " + devID + "\n")
+                            .append("cal devId: " + calDevID + "\n")
+                            .append("all Data: " + data + "\n")
+                    ;
+                    dataBinding.tvCheckData.setText(checkData.toString());
+                }
+            });
+        }
+
+        @Override
+        public void getDeviceData(final String scanDeviceData) {// 拿取到数据
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.e(TAG, "获取到蓝牙原始数据");
+                    dataBinding.tvStatus.setText("当前状态：获取到蓝牙广播数据(已替换数据)");
+                    dataBinding.tvServer.setText(scanDeviceData);
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+//                    mServerData = scanDeviceData; // 不做上传
+//                    mHandler.sendEmptyMessage(HANDLER_SEND_SERVER);
+                }
+            });
+
+        }
+
+        @Override
+        public void getConnDeviceData(String scanDeviceData) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.e(TAG, "获取到蓝牙原始数据");
+                    dataBinding.tvStatus.setText("当前状态：获取到蓝牙连接之后的数据(已连接设备)");
+                    dataBinding.tvServer.setText(scanDeviceData);
+                    dataBinding.tvCheckData.setText(scanDeviceData);
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+//                    mServerData = scanDeviceData;
+//                    mHandler.sendEmptyMessage(HANDLER_SEND_SERVER);
+                }
+            });
+        }
+
+        @Override
+        public void getNotifyConnDeviceSuccess(String scanDeviceData) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    dataBinding.tvStatus.setText("当前状态：获取到蓝牙连接之后的打开通知成功");
+                    dataBinding.tvCheckData.setText(scanDeviceData);
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
+        public void getNotifyConnDeviceFail(String scanDeviceData) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    dataBinding.tvStatus.setText("当前状态：获取到蓝牙连接之后的打开通知失败~~~~~~~");
+                    dataBinding.tvCheckData.setText(scanDeviceData);
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
+        public void getNotifyConnDeviceData(String scanDeviceData) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    dataBinding.tvStatus.setText("当前状态：获取到蓝牙连接之后的通知成功获取数据信息");
+                    dataBinding.tvCheckData.setText(scanDeviceData);
+                    dataBinding.tvServer.setText(scanDeviceData);
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
+        public void connFailedDevice() { // 连接失败
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mContext, "连接失败", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "连接失败");
+                    dataBinding.tvStatus.setText("当前状态：连接失败");
+                    isStop = true;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
+        public void disConnDevice() { // 断开连接
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mContext, "断开连接", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "断开连接");
+                    dataBinding.tvStatus.setText("当前状态：设备 断开连接");
+                    isStop = true;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
+        public void connNotDesDevice() { // 断开连接 连接的设备不是我需要的数据
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(mContext, "断开连接 连接的设备不是我需要的数据", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "连接的设备不是我需要的数据");
+                    dataBinding.tvStatus.setText("当前状态：设备 断开连接 连接的设备不是我需要的数据");
+                    isStop = true;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                }
+            });
+        }
+
+        @Override
+        public void replyDataToDeviceSuccess(String data) {  // 回复硬件蓝牙成功
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    dataBinding.tvStatus.setText("当前状态：回复设备（" + data +" ）成功");
+                    isStop = true;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                    dataBinding.tvReplyDev.setText(data + "------回复成功");
+                }
+            });
+        }
+
+        @Override
+        public void replyDataToDeviceFailed(String data) {  // 回复硬件蓝牙失败
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    dataBinding.tvStatus.setText("当前状态：回复设备（" + data +" ）失败----呜呜呜");
+                    isStop = false;
+                    String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
+                    dataBinding.tvLocation.setText(mLocation);
+                    dataBinding.tvReplyDev.setText(data + "------回复失败");
+                }
+            });
+        }
+    };
 
     private void checkPermissions() {
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -664,6 +954,12 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
      * @param data
      */
     private void upService(String data) {  // TODO 119.23.226.237：9088 使用UDP发送数据信息
+        if (TextUtils.isEmpty(data)){
+            return;
+        }
+        if (udpThread == null) {
+            return;
+        }
         udpThread.sendSocketData(data);
     }
 
@@ -795,7 +1091,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
     protected void onDestroy() {
         super.onDestroy();
         mIsActiity = false;
-        BleNFCManager.getInstance().destroyBlueToothPlugin();
+//        BleNFCManager.getInstance().destroyBlueToothPlugin(); // TODO
+        BleDeviceManager.getInstance().onStopBlueToothPlugin();  // TODO
         stopTimer();
         setStopGPSService();
 
