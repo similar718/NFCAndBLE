@@ -25,6 +25,7 @@ import com.clj.fastble.data.BleDevice;
 import com.clj.fastble.libs.config.Constants;
 import com.clj.fastble.libs.utils.GPSUtils;
 import com.clj.fastble.nfc.BleNFCListener;
+import com.clj.fastble.nfc.BleNFCManager;
 import com.nfc.cn.application.NFCBleApplication;
 import com.nfc.cn.ble.BleDeviceManager;
 import com.nfc.cn.ble.ScanConnectDeviceCallback;
@@ -52,6 +53,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
 
     private boolean mIsOpenGPS = false;
     private boolean mIsOpenBT = false;
+
+    public static boolean mIsInitBleHandler = false;
 
     private final int HANDLER_INIT_IMAGEVIEW = 0x0101;
     private final int HANDLER_INIT_IMAGEVIEW_NFC = 0x0102;
@@ -186,6 +189,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
     }
 
     // 开始连接的操作
+    @SuppressLint("NewApi")
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void StartConnectListener(){
         if (GPSUtils.isOPen(mContext)) {
             if (NetWorkUtils.isNetConnected(mContext)) {
@@ -211,8 +216,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             switch (msg.what){
                 case HANDLER_INIT_IMAGEVIEW:
                     mIsOpenGPS = GPSUtils.isOPen(mContext);
-//                    mIsOpenBT = BleNFCManager.getInstance().BleIsOpen(); // TODO
-                    mIsOpenBT = BleDeviceManager.getInstance().BleIsOpen(); // TODO
+                    mIsOpenBT = BleNFCManager.getInstance().BleIsOpen(); // TODO
+//                    mIsOpenBT = BleDeviceManager.getInstance().BleIsOpen(); // TODO
 
                     dataBinding.ivFlagOpenBt.setImageResource(mIsOpenBT ? R.drawable.ic_bluetooth_black_24dp : R.drawable.ic_bluetooth_disabled_black_24dp);
                     dataBinding.ivFlagOpenGps.setImageResource(mIsOpenGPS ? R.drawable.ic_location_place_black_24dp : R.drawable.ic_location_no_place_black_24dp);
@@ -243,16 +248,16 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             @Override
             public void run() {
-//                BleNFCManager.getInstance().getBleNFCInfo(); // TODO
-                BleDeviceManager.getInstance().scanDevice(); // TODO
+                BleNFCManager.getInstance().getBleNFCInfo(); // TODO
+//                BleDeviceManager.getInstance().scanDevice(); // TODO
             }
         }).start();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void initBlueTooth() {
-//        BleNFCManager.getInstance().initBleNFC(getApplication(),MainActivity.this,mListener); // TODO
-        BleDeviceManager.getInstance().initBleNFC(NFCBleApplication.getInstance(),MainActivity.this,mScanConnectDeviceCallback); // TODO
+        BleNFCManager.getInstance().initBleNFC(getApplication(),MainActivity.this,mListener); // TODO
+//        BleDeviceManager.getInstance().initBleNFC(NFCBleApplication.getInstance(),MainActivity.this,mScanConnectDeviceCallback); // TODO
     }
 
 
@@ -457,13 +462,17 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             });
         }
 
+        private StringBuilder dataText = new StringBuilder();
+
         @Override
         public void getNotifyConnDeviceData(String scanDeviceData) {
+            Log.e("oooooooooooooo","data = " + dataText.toString() + " scandata = " + scanDeviceData);
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     dataBinding.tvStatus.setText("当前状态：获取到蓝牙连接之后的通知成功获取数据信息");
-                    dataBinding.tvCheckData.setText(scanDeviceData);
+                    dataText.append(scanDeviceData + "\n");
+                    dataBinding.tvCheckData.setText(dataText.toString());
                     dataBinding.tvServer.setText(scanDeviceData);
                     isStop = false;
                     String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
@@ -546,6 +555,7 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
         }
     };
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void checkPermissions() {
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (!bluetoothAdapter.isEnabled()) {
@@ -573,6 +583,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
     }
 
 
+    @SuppressLint("NewApi")
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void onPermissionGranted(String permission) {
         switch (permission) {
             case Manifest.permission.ACCESS_FINE_LOCATION:
@@ -842,13 +854,16 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             });
         }
 
+        private StringBuilder dataText = new StringBuilder();
+
         @Override
-        public void getNotifyConnDeviceData(String scanDeviceData) {
+        public void getNotifyConnDeviceData(String scanDeviceData) { // TODO FastBle 的监听
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     dataBinding.tvStatus.setText("当前状态：获取到蓝牙连接之后的通知成功获取数据信息");
-                    dataBinding.tvCheckData.setText(scanDeviceData);
+                    dataText.append(scanDeviceData + "\n");
+                    dataBinding.tvCheckData.setText(dataText.toString());
                     dataBinding.tvServer.setText(scanDeviceData);
                     isStop = false;
                     String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
@@ -1091,8 +1106,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
     protected void onDestroy() {
         super.onDestroy();
         mIsActiity = false;
-//        BleNFCManager.getInstance().destroyBlueToothPlugin(); // TODO
-        BleDeviceManager.getInstance().onStopBlueToothPlugin();  // TODO
+        BleNFCManager.getInstance().destroyBlueToothPlugin(); // TODO
+//        BleDeviceManager.getInstance().onStopBlueToothPlugin();  // TODO
         stopTimer();
         setStopGPSService();
 

@@ -171,15 +171,19 @@
             android:textColor="@color/black"
             />
 
-        <TextView
-            android:id="@+id/tv_check_data"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/dp_10"
-            android:text=""
-            android:layout_below="@+id/tv_server_status"
-            android:textColor="@color/warning"
-            />
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@+id/tv_server_status">
+            <TextView
+                android:id="@+id/tv_check_data"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/dp_10"
+                android:text=""
+                android:textColor="@color/warning"
+                />
+        </androidx.core.widget.NestedScrollView>
 
         <TextView
             android:id="@+id/tv_connect"

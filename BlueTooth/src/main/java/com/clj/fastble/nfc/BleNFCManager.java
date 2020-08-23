@@ -4,13 +4,9 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
-import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
@@ -20,14 +16,10 @@ import android.location.LocationManager;
 import android.location.LocationProvider;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 
 import com.clj.fastble.BleManager;
 import com.clj.fastble.callback.BleGattCallback;
-import com.clj.fastble.callback.BleIndicateCallback;
 import com.clj.fastble.callback.BleNotifyCallback;
 import com.clj.fastble.callback.BleScanCallback;
 import com.clj.fastble.callback.BleWriteCallback;
@@ -42,10 +34,6 @@ import java.util.UUID;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
-
-import static com.clj.fastble.libs.config.Constants.UUID_SERVICE_ALL;
-import static com.clj.fastble.libs.config.Constants.UUID_SERVICE_READ;
-import static com.clj.fastble.libs.config.Constants.UUID_SERVICE_WRITE;
 
 public class BleNFCManager {
     // 单例模式
@@ -90,7 +78,6 @@ public class BleNFCManager {
                 .setConnectOverTime(20000) // 连接超时的时间设置
                 .setOperateTimeout(5000); // 操作超时的时间设置
         // 设置默认RSSI值 TODO 目前没有说需要控制RSSI值
-//        setMinRssi(Constants.mMinRssi);
         // 启动 GPS 定位信息相关信息
         setLocationInfo(context);
         // 插件初始化成功
@@ -216,139 +203,14 @@ public class BleNFCManager {
         });
     }
 
-
-//    private UUID SERVICE_UUID = UUID.fromString("0000fff0-0000-1000-8000-00805f9b34fb");//服务UUID
-//    private UUID WRITE_CHARACTERISTIC = UUID.fromString("0000fff1-0000-1000-8000-00805f9b34fb");//写UUID
-//    private UUID READ_CHARACTERISTIC = UUID.fromString("0000fff4-0000-1000-8000-00805f9b34fb");//读UUID
-
-    private BluetoothGatt bluetoothGatt;
-
-    private BluetoothGattCharacteristic writeCharacteristic;
-
     private String TAG = BleNFCManager.class.getSimpleName();
-
-    /**
-     * 处理蓝牙设备连接 操作
-     *
-     * @param gatt
-     * @param newState
-     */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    private void connectionStateChange(final BluetoothGatt gatt, int newState) {
-        /**
-         * 当前蓝牙设备已经连接
-         */
-        if (newState == BluetoothProfile.STATE_CONNECTED) {
-            Log.e(TAG, "蓝牙设备连接成功");
-            //获取ble设备上面的服务
-            gatt.discoverServices();
-            mBlueToothListener.connSuccesDevice(null);
-        }
-
-        /**
-         * 当前设备无法连接
-         */
-        if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-            Log.e(TAG, "蓝牙设备连接失败");
-            mBlueToothListener.connFailedDevice(null);
-        }
-    }
-
-
-    /**
-     * 连接蓝牙设备结果回调
-     */
-    BluetoothGattCallback bluetoothGattCallback = new BluetoothGattCallback() {
-
-        /**
-         * 连接设备
-         * @param gatt
-         * @param status
-         * @param newState
-         */
-        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-        @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            super.onConnectionStateChange(gatt, status, newState);
-            mBlueToothListener.startConnDevice(null); // 开始连接设备
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.e(TAG, "GATT_SUCCESS");
-                connectionStateChange(gatt, newState);
-            } else if (status == BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED) {
-                Log.e(TAG, "不支持");
-                mBlueToothListener.startConnNoSupport();
-            }
-        }
-        /**
-         * 发现设备服务
-         * @param gatt
-         * @param status
-         */
-        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-        @Override
-        public void onServicesDiscovered(final BluetoothGatt gatt, int status) {
-            super.onServicesDiscovered(gatt, status);
-
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                boolean flag = enableNotification(gatt);
-                if (flag) {
-                    Log.e(TAG, "蓝牙设备已连接");
-                    mBlueToothListener.connSuccesDevice(null);
-                } else {
-                    Log.e(TAG, "蓝牙设备已断开连接");
-                    mBlueToothListener.disConnDevice(null);
-                }
-            }
-        }
-
-        /**
-         * 写数据
-         * @param gatt
-         * @param characteristic
-         * @param status
-         */
-        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-        @Override
-        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            super.onCharacteristicWrite(gatt, characteristic, status);
-            //写数据成功
-            if (BluetoothGatt.GATT_SUCCESS == status && UUID_SERVICE_WRITE.equals(characteristic.getUuid())) {
-                Log.e(TAG, "write onCharacteristicWrite GATT_SUCCESS---" + status);
-            } else if (BluetoothGatt.GATT_FAILURE == status && UUID_SERVICE_WRITE.equals(characteristic.getUuid())) {
-                Log.e(TAG, "write onCharacteristicWrite GATT_FAILURE" + status);
-            }
-        }
-
-        /**
-         * 通知数据，往设备写入数据之后，接收设备返回的数据
-         * @param gatt
-         * @param characteristic
-         */
-        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-        @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-            super.onCharacteristicChanged(gatt, characteristic);
-            Log.e(TAG, " onCharacteristicChanged ");
-            //设备传输的数据包
-            byte[] packData = characteristic.getValue();
-            mBlueToothListener.getNotifyConnDeviceSuccess(HexUtil.encodeHexStr(packData));
-        }
-    };
-
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void connect(final BleDevice bleDevice) {
-//        BluetoothDevice bluetoothDevice = bleDevice.getDevice();
-//        //连接蓝牙设备
-//        bluetoothGatt = bluetoothDevice.connectGatt(mContext, false, bluetoothGattCallback);
-
         BleManager.getInstance().connect(bleDevice, new BleGattCallback() {
             @Override
             public void onStartConnect() {
                 mBlueToothListener.startConnDevice((BleDevice) bleDevice); // 开始连接设备
-//                Looper.prepare();
-//                mHandler.sendEmptyMessageDelayed(0,2000);
-//                Looper.loop();
             }
 
             @Override
@@ -362,44 +224,88 @@ public class BleNFCManager {
                 mBlueToothListener.connSuccesDevice((BleDevice) bleDevice); // 成功连接设备  准备验证数据
                 // 需要打开notify 准备接收数据
                 mConnectDevice = bleDevice;
+                /*
+                 uuid_service = 00001800-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 00002a00-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 00002a01-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 00002a04-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 00002ac9-0000-1000-8000-00805f9b34fb
 
-                setWriteData(bleDevice, (byte) 0x8E);
-                /*BleManager.getInstance().indicate(bleDevice, UUID_SERVICE_READ,UUID_SERVICE_ALL, new BleIndicateCallback() {
-                    @Override
-                    public void onIndicateSuccess() {
-                        mBlueToothListener.getNotifyConnDeviceSuccess("打开Indicate成功");
-                        Looper.prepare();
-                        mHandler.sendEmptyMessageDelayed(0,2000);
-                        Looper.loop();
+                 uuid_service = 00001801-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 00002a05-0000-1000-8000-00805f9b34fb
+
+                 uuid_service = 0000180a-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 00002a23-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 00002a25-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 00002a26-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 00002a27-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 00002a29-0000-1000-8000-00805f9b34fb
+
+                 uuid_service = 0000ffe0-0000-1000-8000-00805f9b34fb  支持notify和indicate
+                 uuid_chara = 0000ffe4-0000-1000-8000-00805f9b34fb
+
+                 uuid_service = 0000ffe5-0000-1000-8000-00805f9b34fb 可写入
+                 uuid_chara = 0000ffe9-0000-1000-8000-00805f9b34fb
+
+                 uuid_service = 0000ff90-0000-1000-8000-00805f9b34fb 多操作
+                 uuid_chara = 0000ff91-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 0000ff92-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 0000ff93-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 0000ff94-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 0000ff95-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 0000ff96-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 0000ff97-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 0000ff98-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 0000ff99-0000-1000-8000-00805f9b34fb
+
+                 uuid_service = 0000ffc0-0000-1000-8000-00805f9b34fb  应该是设置密码和名称
+                 uuid_chara = 0000ffc1-0000-1000-8000-00805f9b34fb
+                 uuid_chara = 0000ffc2-0000-1000-8000-00805f9b34fb
+                 */
+                List<BluetoothGattService> serviceList = gatt.getServices();
+                for (BluetoothGattService service : serviceList) {
+                    UUID uuid_service = service.getUuid();
+//                    Log.e("oooooooooooooo","uuid_service = " + uuid_service);
+                    List<BluetoothGattCharacteristic> characteristicList= service.getCharacteristics();
+                    for(BluetoothGattCharacteristic characteristic : characteristicList) {
+                        UUID uuid_chara = characteristic.getUuid();
+                        int descriptor = characteristic.getProperties();
+
+                        if (descriptor == BluetoothGattCharacteristic.PROPERTY_NOTIFY && notify_uuid_service == null && notify_uuid_chara == null) { // 表示支持notify
+                            notify_uuid_service = uuid_service;
+                            notify_uuid_chara = uuid_chara;
+                        }
+                        if (descriptor == BluetoothGattCharacteristic.PROPERTY_WRITE && write_uuid_chara == null && write_uuid_service == null) { // 表示支持notify
+                            write_uuid_service = uuid_service;
+                            write_uuid_chara = uuid_chara;
+                        }
+//                        if (descriptor != 0) {
+//                            Log.e("oooooooooooooo", "uuid_chara = " + uuid_chara + "\n" + descriptor);
+//                        } else {
+//                            Log.e("oooooooooooooo", "uuid_chara = " + uuid_chara);
+//                        }
                     }
+                }
+                if (notify_uuid_chara != null && notify_uuid_service != null) {
+                    BleManager.getInstance().notify(bleDevice, notify_uuid_service.toString(), notify_uuid_chara.toString(), new BleNotifyCallback() {
+                        @Override
+                        public void onNotifySuccess() {
+                            mBlueToothListener.getNotifyConnDeviceSuccess("打开notify成功");
+                        }
 
-                    @Override
-                    public void onIndicateFailure(BleException exception) {
-                        mBlueToothListener.getNotifyConnDeviceFail("打开Indicate失败");
-                    }
+                        @Override
+                        public void onNotifyFailure(BleException exception) {
+                            mBlueToothListener.getNotifyConnDeviceFail("打开notify失败");
+                        }
 
-                    @Override
-                    public void onCharacteristicChanged(byte[] data) {
-                        mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
-                    }
-                });*/
-
-//                BleManager.getInstance().notify(bleDevice, UUID_SERVICE_ALL, UUID_SERVICE_READ, new BleNotifyCallback() {
-//                    @Override
-//                    public void onNotifySuccess() {
-//                        mBlueToothListener.getNotifyConnDeviceSuccess("打开notify成功");
-//                    }
-//
-//                    @Override
-//                    public void onNotifyFailure(BleException exception) {
-//                        mBlueToothListener.getNotifyConnDeviceFail("打开notify失败");
-//                    }
-//
-//                    @Override
-//                    public void onCharacteristicChanged(byte[] data) {
-//                        mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
-//                    }
-//                });
+                        @Override
+                        public void onCharacteristicChanged(byte[] data) {
+                            mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
+                        }
+                    });
+                } else {
+                    mBlueToothListener.getNotifyConnDeviceFail("设备可能不支持notify，没有搜索到notify的UUID");
+                }
             }
             @Override
             public void onDisConnected(boolean isActiveDisConnected, BleDevice bleDevice, BluetoothGatt gatt, int status) {
@@ -410,148 +316,34 @@ public class BleNFCManager {
 
     BleDevice mConnectDevice;
 
-    private Handler mHandler = new Handler(){
-        @Override
-        public void handleMessage(Message msg) {
-            if (mConnectDevice != null){
-                if (!BleManager.getInstance().isConnected(mConnectDevice)) {
-                    BleManager.getInstance().disconnect(mConnectDevice);
-                    mBlueToothListener.getNotifyConnDeviceFail("连接不上 失败");
-                    mBlueToothListener.disConnDevice(mConnectDevice);
-                }
-            }
-        }
-    };
+    public static UUID notify_uuid_chara = null; // notify 的 UUID_chara获取
+    public static UUID notify_uuid_service = null;  // notify 的 UUID_service获取
 
-    /**
-     * 订阅蓝牙通知消息，在onCharacteristicChanged()回调中接收蓝牙返回的消息
-     *
-     * @param gatt
-     * @return
-     */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public boolean enableNotification(BluetoothGatt gatt) {
-        boolean success = false;
-        BluetoothGattService service = gatt.getService(UUID.fromString(UUID_SERVICE_ALL));
-        if (service != null) {
-            BluetoothGattCharacteristic characteristic = findNotifyCharacteristic(service);
-            if (characteristic != null) {
-                success = gatt.setCharacteristicNotification(characteristic, true);
-                gatt.readCharacteristic(characteristic);
-                if (success) {
-                    for (BluetoothGattDescriptor dp : characteristic.getDescriptors()) {
-                        if (dp != null) {
-                            if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
-                                dp.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                            } else if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
-                                dp.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
-                            }
-                            int writeType = characteristic.getWriteType();
-                            Log.e(BleNFCManager.class.getSimpleName(), "enableNotification: " + writeType);
-                            characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
-                            gatt.writeDescriptor(dp);
-                            characteristic.setWriteType(writeType);
-                        }
-                    }
-                }
-            }
-        }
-        return success;
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    private BluetoothGattCharacteristic findNotifyCharacteristic(BluetoothGattService service) {
-        BluetoothGattCharacteristic characteristic = null;
-        List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
-        for (BluetoothGattCharacteristic c : characteristics) {
-            if ((c.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 && UUID_SERVICE_READ.equals(c.getUuid())) {
-                characteristic = c;
-                break;
-            }
-            //用于通讯的UUID character
-            if (c.getUuid().equals(UUID_SERVICE_WRITE)) {
-                writeCharacteristic = c;
-            }
-        }
-        if (characteristic != null) {
-            return characteristic;
-        }
-        for (BluetoothGattCharacteristic c : characteristics) {
-            if ((c.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0 && UUID_SERVICE_READ.equals(c.getUuid())) {
-                characteristic = c;
-                break;
-            }
-        }
-        return characteristic;
-    }
-
-    public void setCloseConn(BleDevice bleDevice){
-        if (BleManager.getInstance().isConnected(bleDevice)) {
-            BleManager.getInstance().disconnect(bleDevice);
-        }
-    }
-
-    private void setWriteData(final BleDevice bleDevice,byte datas){
-        final byte[] data = {datas};
-        BleManager.getInstance().write(
-                bleDevice,
-                UUID_SERVICE_WRITE,
-                UUID_SERVICE_ALL,
-                data,
-                new BleWriteCallback() {
-                    @Override
-                    public void onWriteSuccess(int current, int total, byte[] justWrite) {
-                        // 发送数据到设备成功（分包发送的情况下，可以通过方法中返回的参数可以查看发送进度）
-                        mBlueToothListener.replyDataToDeviceSuccess(toBinaryString(data));
-
-
-                        BleManager.getInstance().notify(bleDevice, UUID_SERVICE_ALL, UUID_SERVICE_READ, new BleNotifyCallback() {
-                            @Override
-                            public void onNotifySuccess() {
-                                mBlueToothListener.getNotifyConnDeviceSuccess("打开notify成功");
-                            }
-
-                            @Override
-                            public void onNotifyFailure(BleException exception) {
-                                mBlueToothListener.getNotifyConnDeviceFail("打开notify失败");
-                            }
-
-                            @Override
-                            public void onCharacteristicChanged(byte[] data) {
-                                mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onWriteFailure(BleException exception) {
-                        // 发送数据到设备失败
-                        mBlueToothListener.replyDataToDeviceFailed(toBinaryString(data));
-
-                        BleManager.getInstance().notify(bleDevice, UUID_SERVICE_ALL, UUID_SERVICE_READ, new BleNotifyCallback() {
-                            @Override
-                            public void onNotifySuccess() {
-                                mBlueToothListener.getNotifyConnDeviceSuccess("打开notify成功");
-                            }
-
-                            @Override
-                            public void onNotifyFailure(BleException exception) {
-                                mBlueToothListener.getNotifyConnDeviceFail("打开notify失败");
-                            }
-
-                            @Override
-                            public void onCharacteristicChanged(byte[] data) {
-                                mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
-                            }
-                        });
-                    }
-                });
-    }
+    public static UUID write_uuid_chara = null; // notify 的 UUID_chara获取
+    public static UUID write_uuid_service = null;  // notify 的 UUID_service获取
 
     // 清除掉我们打开的蓝牙设备
     public void destroyBlueToothPlugin(){
         BleManager.getInstance().disconnectAllDevice();
         BleManager.getInstance().destroy();
+    }
+
+    private void writeToDevice(BleDevice bleDevice, final byte[] data){
+        if (write_uuid_chara != null && write_uuid_service != null) {
+            BleManager.getInstance().write(bleDevice, write_uuid_service.toString(), write_uuid_chara.toString(), data, new BleWriteCallback() {
+                @Override
+                public void onWriteSuccess(int current, int total, byte[] justWrite) {
+                    mBlueToothListener.replyDataToDeviceSuccess(HexUtil.encodeHexStr(data));
+                }
+
+                @Override
+                public void onWriteFailure(BleException exception) {
+                    mBlueToothListener.replyDataToDeviceFailed(HexUtil.encodeHexStr(data));
+                }
+            });
+        } else {
+            mBlueToothListener.replyDataToDeviceFailed(HexUtil.encodeHexStr(data) + "当前设备无回复特性");
+        }
     }
 
     /**
@@ -607,19 +399,4 @@ public class BleNFCManager {
         public void onProviderDisabled(String provider) {
         }
     };
-
-    public static String toBinaryString(byte[] var0) {
-        String var1 = "";
-        for(int var2 = 0; var2 < var0.length; ++var2) {
-            byte var3 = var0[var2];
-            for(int var4 = 0; var4 < 8; ++var4) {
-                int var5 = var3 >>> var4 & 1;
-                var1 = var1 + var5;
-            }
-            if (var2 != var0.length - 1) {
-                var1 = var1 + " ";
-            }
-        }
-        return var1;
-    }
 }
