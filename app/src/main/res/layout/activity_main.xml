@@ -126,7 +126,7 @@
             android:layout_height="@dimen/dp_50"
             android:layout_below="@id/tv_server"
             android:background="@color/color_white"
-            android:hint="默认检查名称为Tv450u-EDC84D60的设备，如果不是请做更改"
+            android:hint="默认检查名称为BTELITE的设备，如果不是请做更改"
             android:textColor="@color/color_black"
             android:textSize="@dimen/text_size_14"
             />

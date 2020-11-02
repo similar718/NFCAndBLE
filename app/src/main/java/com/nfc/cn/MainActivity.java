@@ -1013,7 +1013,7 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                                 showLoadFail("数据解析成功：" + bean.toString() + "准备发送关闭命令");
                             }
                         });
-                        BleNFCManager.getInstance().sendOffLine(new byte[]{(byte)0x8E});
+                        BleNFCManager.getInstance().sendOffLine(new byte[]{(byte)0x8E,(byte)0x9C});
                         mIsParseSuccess = true;
                     } else {
                         String showContent = content;
