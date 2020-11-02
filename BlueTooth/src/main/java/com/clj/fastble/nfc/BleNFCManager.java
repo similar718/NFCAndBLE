@@ -290,6 +290,9 @@ public class BleNFCManager {
                     BleManager.getInstance().notify(bleDevice, notify_uuid_service.toString(), notify_uuid_chara.toString(), new BleNotifyCallback() {
                         @Override
                         public void onNotifySuccess() {
+                            if (mCurrentBle != null && mCurrentBle != bleDevice){
+                                mCurrentBle = bleDevice;
+                            }
                             mBlueToothListener.getNotifyConnDeviceSuccess("打开notify成功");
                         }
 
@@ -300,9 +303,6 @@ public class BleNFCManager {
 
                         @Override
                         public void onCharacteristicChanged(byte[] data) {
-                            if (mCurrentBle != null && mCurrentBle != bleDevice){
-                                mCurrentBle = bleDevice;
-                            }
                             mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
                         }
                     });
@@ -319,7 +319,7 @@ public class BleNFCManager {
 
     public static BleDevice mCurrentBle = null;
 
-    BleDevice mConnectDevice;
+     static BleDevice mConnectDevice;
 
     public static UUID notify_uuid_chara = null; // notify 的 UUID_chara获取
     public static UUID notify_uuid_service = null;  // notify 的 UUID_service获取
@@ -334,9 +334,9 @@ public class BleNFCManager {
     }
 
     public static void sendOffLine(final byte[] data){
-        if (mCurrentBle != null) {
+        if (mConnectDevice != null) {
             if (write_uuid_chara != null && write_uuid_service != null) {
-                BleManager.getInstance().write(mCurrentBle, write_uuid_service.toString(), write_uuid_chara.toString(), data, new BleWriteCallback() {
+                BleManager.getInstance().write(mConnectDevice, write_uuid_service.toString(), write_uuid_chara.toString(), data, new BleWriteCallback() {
                     @Override
                     public void onWriteSuccess(int current, int total, byte[] justWrite) {
                         mBlueToothListener.replyDataToDeviceSuccess(HexUtil.encodeHexStr(data));

@@ -857,6 +857,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
 
         private StringBuilder dataText = new StringBuilder();
 
+        private StringBuilder dataText1 = new StringBuilder();
+
         @Override
         public void getNotifyConnDeviceData(String scanDeviceData) { // TODO FastBle 的监听
             runOnUiThread(new Runnable() {
@@ -869,8 +871,13 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                     isStop = false;
                     String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
                     dataBinding.tvLocation.setText(mLocation);
-                    // TODO 开启线程解析数据
-                    parseData(scanDeviceData);
+                    dataText1.append(scanDeviceData);
+                    Log.e("ooooooooooo","data = " + dataText1.toString());
+                    if(dataText1.toString().length() > 40 && !mIsParseSuccess) {
+                        // TODO 开启线程解析数据
+                        parseData(dataText1.toString());
+                        dataText1 = new StringBuilder();
+                    }
                 }
             });
         }
@@ -950,12 +957,13 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
     };
 
     private boolean mIsParse = false;
+    private boolean mIsParseSuccess = false;
     private void parseData(final String datas){
         if (!mIsParse) {
             mIsParse = true;
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
+//            new Thread(new Runnable() {
+//                @Override
+//                public void run() {
                     String data = datas.toUpperCase();
                     String content = ""; // 装所有数据的字符串
                     // 判断当前数据有头有尾
@@ -999,16 +1007,28 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                         bean.setByte9(content.substring(44, 56));
                         bean.setByte10(content.substring(56, 58));
                         bean.setByte11(content.substring(58, 60));
-                        showLoadFail("数据解析成功：" + bean.toString() + "准备发送关闭命令");
-
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                showLoadFail("数据解析成功：" + bean.toString() + "准备发送关闭命令");
+                            }
+                        });
                         BleNFCManager.getInstance().sendOffLine(new byte[]{(byte)0x8E});
+                        mIsParseSuccess = true;
                     } else {
-                        showLoadFail("数据不全 解析之后的数据：" + content + "\n 解析之前的数据：" + datas);
+                        String showContent = content;
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                showLoadFail("数据不全 解析之后的数据：" + showContent + "\n 解析之前的数据：" + datas);
+                            }
+                        });
+                        mIsParseSuccess = false;
                     }
                     mIsParse = false;
                 }
-            });
-        }
+//            });
+//        }
     }
 
     private void updateServerData(String data){
