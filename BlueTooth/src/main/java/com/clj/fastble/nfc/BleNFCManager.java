@@ -133,7 +133,7 @@ public class BleNFCManager {
     }
 
     // 插件监听的实例化
-    private BleNFCListener mBlueToothListener;
+    private static BleNFCListener mBlueToothListener;
 
     public void getBleNFCInfo(){
         setScanRule();
@@ -300,6 +300,9 @@ public class BleNFCManager {
 
                         @Override
                         public void onCharacteristicChanged(byte[] data) {
+                            if (mCurrentBle != null && mCurrentBle != bleDevice){
+                                mCurrentBle = bleDevice;
+                            }
                             mBlueToothListener.getNotifyConnDeviceData(HexUtil.encodeHexStr(data));
                         }
                     });
@@ -314,6 +317,8 @@ public class BleNFCManager {
         });
     }
 
+    public static BleDevice mCurrentBle = null;
+
     BleDevice mConnectDevice;
 
     public static UUID notify_uuid_chara = null; // notify 的 UUID_chara获取
@@ -326,6 +331,26 @@ public class BleNFCManager {
     public void destroyBlueToothPlugin(){
         BleManager.getInstance().disconnectAllDevice();
         BleManager.getInstance().destroy();
+    }
+
+    public static void sendOffLine(final byte[] data){
+        if (mCurrentBle != null) {
+            if (write_uuid_chara != null && write_uuid_service != null) {
+                BleManager.getInstance().write(mCurrentBle, write_uuid_service.toString(), write_uuid_chara.toString(), data, new BleWriteCallback() {
+                    @Override
+                    public void onWriteSuccess(int current, int total, byte[] justWrite) {
+                        mBlueToothListener.replyDataToDeviceSuccess(HexUtil.encodeHexStr(data));
+                    }
+
+                    @Override
+                    public void onWriteFailure(BleException exception) {
+                        mBlueToothListener.replyDataToDeviceFailed(HexUtil.encodeHexStr(data));
+                    }
+                });
+            } else {
+                mBlueToothListener.replyDataToDeviceFailed(HexUtil.encodeHexStr(data) + "当前设备无回复特性");
+            }
+        }
     }
 
     private void writeToDevice(BleDevice bleDevice, final byte[] data){

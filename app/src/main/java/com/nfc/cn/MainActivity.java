@@ -28,6 +28,7 @@ import com.clj.fastble.nfc.BleNFCListener;
 import com.clj.fastble.nfc.BleNFCManager;
 // import com.nfc.cn.application.NFCBleApplication;
 // import com.nfc.cn.ble.BleDeviceManager;
+import com.nfc.cn.bean.NotifyBLEDataConstructerBean;
 import com.nfc.cn.ble.ScanConnectDeviceCallback;
 import com.nfc.cn.databinding.ActivityMainBinding;
 import com.nfc.cn.listener.SocketListener;
@@ -261,7 +262,7 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
     }
 
 
-    private ScanConnectDeviceCallback mScanConnectDeviceCallback = new ScanConnectDeviceCallback() {
+    /*private ScanConnectDeviceCallback mScanConnectDeviceCallback = new ScanConnectDeviceCallback() {
         @Override
         public void initFailed(byte data) {// TODO  初始化失败 需要配合相关操作之后再重新初始化
             if (data == (byte) 0x0001){ //没有打开GPS的情况
@@ -553,7 +554,7 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                 }
             });
         }
-    };
+    };*/
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void checkPermissions() {
@@ -868,6 +869,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                     isStop = false;
                     String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
                     dataBinding.tvLocation.setText(mLocation);
+                    // TODO 开启线程解析数据
+                    parseData(scanDeviceData);
                 }
             });
         }
@@ -945,6 +948,68 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             });
         }
     };
+
+    private boolean mIsParse = false;
+    private void parseData(final String datas){
+        if (!mIsParse) {
+            mIsParse = true;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    String data = datas.toUpperCase();
+                    String content = ""; // 装所有数据的字符串
+                    // 判断当前数据有头有尾
+                    if (data.contains("FF") && data.contains("9C")) {
+                        // 开始截取头部之后的数据 判断是否是以FF 或者 ff 开始
+                        if (data.startsWith("FF")) {
+                            content = data;
+                        } else {
+                            // 需要进行截取
+                            String[] splitFF = data.split("FF");
+                            if (splitFF.length > 1) {
+                                content = "FF" + splitFF[1];
+                            } else {
+                                content = "";
+                            }
+                        }
+                        // 开始截取尾部之前的位置 判断是否是以9C 或者 9c 结尾
+                        if (content.endsWith("9C")) {
+                        } else {
+                            // 需要进行截取
+                            String[] split9C = content.split("9C");
+                            if (split9C.length > 0) {
+                                content = split9C[0] + "9C";
+                            } else {
+                                content = "";
+                            }
+                        }
+                    }
+                    // 上面的数据表示 58 表示数据是全的
+                    if (content.startsWith("FF") && content.endsWith("9C") && content.length() == 60) {
+                        NotifyBLEDataConstructerBean bean = new NotifyBLEDataConstructerBean();
+                        bean.setByte0(content.substring(0, 2));
+                        bean.setByte1(content.substring(2, 4));
+                        bean.setByte2(content.substring(4, 6));
+                        bean.setByte3(content.substring(6, 18));
+                        bean.setByte4(content.substring(18, 22));
+                        bean.setByte5(content.substring(22, 24));
+                        bean.setByte6(content.substring(24, 40));
+                        bean.setByte7(content.substring(40, 42));
+                        bean.setByte8(content.substring(42, 44));
+                        bean.setByte9(content.substring(44, 56));
+                        bean.setByte10(content.substring(56, 58));
+                        bean.setByte11(content.substring(58, 60));
+                        showLoadFail("数据解析成功：" + bean.toString() + "准备发送关闭命令");
+
+                        BleNFCManager.getInstance().sendOffLine(new byte[]{(byte)0x8E});
+                    } else {
+                        showLoadFail("数据不全 解析之后的数据：" + content + "\n 解析之前的数据：" + datas);
+                    }
+                    mIsParse = false;
+                }
+            });
+        }
+    }
 
     private void updateServerData(String data){
         if (data.isEmpty()){
