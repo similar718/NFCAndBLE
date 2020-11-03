@@ -224,6 +224,7 @@ public class BleNFCManager {
                 mBlueToothListener.connSuccesDevice((BleDevice) bleDevice); // 成功连接设备  准备验证数据
                 // 需要打开notify 准备接收数据
                 mConnectDevice = bleDevice;
+                mConnectGatt = gatt;
                 /*
                  uuid_service = 00001800-0000-1000-8000-00805f9b34fb
                  uuid_chara = 00002a00-0000-1000-8000-00805f9b34fb
@@ -275,9 +276,13 @@ public class BleNFCManager {
                             notify_uuid_service = uuid_service;
                             notify_uuid_chara = uuid_chara;
                         }
-                        if (descriptor == BluetoothGattCharacteristic.PROPERTY_WRITE && write_uuid_chara == null && write_uuid_service == null) { // 表示支持notify
+                        if (descriptor == BluetoothGattCharacteristic.PROPERTY_WRITE && write_uuid_chara == null && write_uuid_service == null) { // 表示支持write
                             write_uuid_service = uuid_service;
                             write_uuid_chara = uuid_chara;
+                        }
+                        if (descriptor == BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE && write_uuid_chara_no == null && write_uuid_service_no == null) { // 表示支持write no response
+                            write_uuid_service_no = uuid_service;
+                            write_uuid_chara_no = uuid_chara;
                         }
 //                        if (descriptor != 0) {
 //                            Log.e("oooooooooooooo", "uuid_chara = " + uuid_chara + "\n" + descriptor);
@@ -320,12 +325,16 @@ public class BleNFCManager {
     public static BleDevice mCurrentBle = null;
 
      static BleDevice mConnectDevice;
+     static BluetoothGatt mConnectGatt;
 
     public static UUID notify_uuid_chara = null; // notify 的 UUID_chara获取
     public static UUID notify_uuid_service = null;  // notify 的 UUID_service获取
 
     public static UUID write_uuid_chara = null; // notify 的 UUID_chara获取
     public static UUID write_uuid_service = null;  // notify 的 UUID_service获取
+
+    public static UUID write_uuid_chara_no = null; // notify 的 UUID_chara获取
+    public static UUID write_uuid_service_no = null;  // notify 的 UUID_service获取
 
     // 清除掉我们打开的蓝牙设备
     public void destroyBlueToothPlugin(){
@@ -335,8 +344,10 @@ public class BleNFCManager {
 
     public static void sendOffLine(final byte[] data){
         if (mConnectDevice != null) {
-            if (write_uuid_chara != null && write_uuid_service != null) {
-                BleManager.getInstance().write(mConnectDevice, write_uuid_service.toString(), write_uuid_chara.toString(), data, new BleWriteCallback() {
+            write_uuid_service_no = UUID.fromString("0000ffe5-0000-1000-8000-00805f9b34fb");
+            write_uuid_chara_no = UUID.fromString("0000ffe9-0000-1000-8000-00805f9b34fb");
+            if (write_uuid_chara_no != null && write_uuid_service_no != null) {
+                BleManager.getInstance().write(mConnectDevice, write_uuid_service_no.toString(), write_uuid_chara_no.toString(), data, new BleWriteCallback() {
                     @Override
                     public void onWriteSuccess(int current, int total, byte[] justWrite) {
                         mBlueToothListener.replyDataToDeviceSuccess(HexUtil.encodeHexStr(data));
@@ -344,7 +355,7 @@ public class BleNFCManager {
 
                     @Override
                     public void onWriteFailure(BleException exception) {
-                        mBlueToothListener.replyDataToDeviceFailed(HexUtil.encodeHexStr(data));
+                        mBlueToothListener.replyDataToDeviceFailed(HexUtil.encodeHexStr(data) + exception.toString());
                     }
                 });
             } else {

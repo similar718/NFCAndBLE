@@ -2,6 +2,10 @@ apply plugin: 'com.android.application'
 // 依赖插件脚本
 apply from: 'tinker-support.gradle'
 
+//生成打包时间
+def releaseTime() {
+    return new Date().format("yyyy-MM-dd", TimeZone.getTimeZone("UTC"))
+}
 android {
     compileSdkVersion 29
     buildToolsVersion "29.0.3"
@@ -29,9 +33,26 @@ android {
     }
 
     buildTypes {
+//        release {
+//            minifyEnabled false
+//            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+//        }
         release {
+            //开启混淆  // 启用 代码缩减、混淆、代码优化
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            //混淆文件
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
+            //多渠道打包配置
+            applicationVariants.all { variant ->
+                variant.outputs.all { output ->
+                    //要被替换的源字符串
+                    def sourceFile = "app-${variant.buildType.name}"
+                    //输出apk名称lifeon_版本号_编译时间.apk
+                    def replaceFile = "NFC_${defaultConfig.versionName}_${releaseTime()}_${variant.buildType.name}"
+                    outputFileName = output.outputFile.name.replace(sourceFile, replaceFile)
+                }
+            }
         }
     }
 
