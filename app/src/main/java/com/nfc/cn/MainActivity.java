@@ -685,6 +685,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    dataBinding.tvReplyDev.setText("");
+                    mIsParseSuccess = false;
                     Toast.makeText(mContext, "搜索到目标设备", Toast.LENGTH_LONG).show();
                     Log.e(TAG, "搜索到目标设备");
                     dataBinding.tvStatus.setText("当前状态：搜索到目标设备正在连接中");
@@ -701,6 +703,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    dataBinding.tvReplyDev.setText("");
+                    mIsParseSuccess = false;
                     Toast.makeText(mContext, "未搜索到目标设备", Toast.LENGTH_LONG).show();
                     Log.e(TAG, "未搜索到目标设备");
                     dataBinding.tvStatus.setText("当前状态：未搜索到目标设备 请打开设备之后重试");
@@ -902,6 +906,7 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    mIsParseSuccess = false;
                     Toast.makeText(mContext, "断开连接", Toast.LENGTH_LONG).show();
                     Log.e(TAG, "断开连接");
                     dataBinding.tvStatus.setText("当前状态：设备 断开连接");
@@ -917,6 +922,7 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    mIsParseSuccess = false;
                     Toast.makeText(mContext, "断开连接 连接的设备不是我需要的数据", Toast.LENGTH_LONG).show();
                     Log.e(TAG, "连接的设备不是我需要的数据");
                     dataBinding.tvStatus.setText("当前状态：设备 断开连接 连接的设备不是我需要的数据");
@@ -946,6 +952,7 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    mIsParseSuccess = false;
                     dataBinding.tvStatus.setText("当前状态：回复设备（" + data +" ）失败----呜呜呜");
                     isStop = false;
                     String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
