@@ -875,9 +875,14 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                     isStop = false;
                     String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
                     dataBinding.tvLocation.setText(mLocation);
-                    dataText1.append(scanDeviceData);
+                    if (scanDeviceData.startsWith("FF") || scanDeviceData.startsWith("ff")){
+                        dataText1 = new StringBuilder();
+                        dataText1.append(scanDeviceData);
+                    } else if (scanDeviceData.endsWith("9c") || scanDeviceData.endsWith("9C")){
+                        dataText1.append(scanDeviceData);
+                    }
                     Log.e("ooooooooooo","data = " + dataText1.toString());
-                    if(dataText1.toString().length() > 40 && !mIsParseSuccess) {
+                    if(dataText1.toString().length() > 40/* && !mIsParseSuccess*/) {
                         // TODO 开启线程解析数据
                         parseData(dataText1.toString());
                         dataText1 = new StringBuilder();
@@ -943,6 +948,9 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                     String mLocation = "蓝牙插件定位信息\n经度："+ Constants.mLatitude +"\n纬度："+ Constants.mLongitude;
                     dataBinding.tvLocation.setText(mLocation);
                     dataBinding.tvReplyDev.setText(data + "------回复成功");
+                    dataText = new StringBuilder();
+                    dataText.append("");
+                    dataBinding.tvCheckData.setText(dataText.toString());
                 }
             });
         }
