@@ -1042,7 +1042,12 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                         if (Byte.parseByte(bean.byte10,16) == reply_data1) {
                             BleNFCManager.getInstance().sendOffLine(reply_data);
                         } else {
-                            BleNFCManager.getInstance().sendOffLine(version_data);
+                            String bledata = dataBinding.etBleData.getText().toString().trim();
+                            if (TextUtils.isEmpty(bledata)){
+                                BleNFCManager.getInstance().sendOffLine(version_data);
+                            } else {
+                                BleNFCManager.getInstance().sendOffLine(bledata.getBytes());
+                            }
                         }
                         mIsParseSuccess = true;
                     } else {
@@ -1059,6 +1064,18 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                 }
 //            });
 //        }
+    }
+
+    public static byte[] hexStrToByteArray(String data) {
+        if (TextUtils.isEmpty(data)) {
+            return  null;
+        }
+        byte[] bytes = new byte[data.length() / 2];
+        for (int i = 0; i < bytes.length; i++){
+            String subStr = data.substring(2*i,2*i+2);
+            bytes[i] = (byte) Integer.parseInt(subStr,16);
+        }
+        return bytes;
     }
 
     private void updateServerData(String data){

@@ -135,10 +135,24 @@
             android:id="@+id/tv_ble_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="开始前进行数据填充设置，点击开始连接自行设置"
             android:layout_below="@+id/et_ble_name"
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="@dimen/dp_10"
+            android:text="开始前进行数据填充设置，点击开始连接自行设置"
             android:textColor="@color/color_black"
-            android:textSize="@dimen/text_size_8"
+            android:textSize="@dimen/text_size_8" />
+
+        <EditText
+            android:id="@+id/et_ble_data"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/dp_50"
+            android:layout_below="@id/tv_ble_name"
+            android:background="@color/gray"
+            android:hint="8FEBEF6068DB0EB06F8004007717E2258023299C"
+            android:textColor="@color/color_white"
+            android:textColorHint="@color/color_white"
+            android:singleLine="true"
+            android:textSize="@dimen/text_size_14"
             />
 
         <TextView
@@ -146,7 +160,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="NFC相关信息："
-            android:layout_below="@+id/tv_ble_name"
+            android:layout_below="@+id/et_ble_data"
             android:textColor="@color/color_black"
             android:layout_marginTop="@dimen/dp_10"
             />
