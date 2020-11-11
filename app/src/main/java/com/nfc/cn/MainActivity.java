@@ -971,6 +971,17 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
         }
     };
 
+    // 8F EB 0B 8E 68 DB 0E B0 6F 80 04 00 77 17 E2 25 80 23 29 9C
+    // 8F 0B 8E 68 DB 0E B0 6F 80 04 00 77 17 E2 25 80 23 29 9C
+    byte[] version_data = new byte[]{
+            (byte) 0x8F,(byte) 0xEB,(byte) 0xEF,(byte) 0x60,(byte) 0x68,
+            (byte) 0xDB,(byte) 0x0E,(byte) 0xB0,(byte) 0x6F,(byte) 0x80,
+            (byte) 0x04,(byte) 0x00,(byte) 0x77,(byte) 0x17,(byte) 0xE2,
+            (byte) 0x25,(byte) 0x80,(byte) 0x23,(byte) 0x29,(byte) 0x9C};
+
+    byte[] reply_data = new byte[]{(byte)0x8E,(byte)0x9C};
+    byte reply_data1 = (byte) 0x29;
+
     private boolean mIsParse = false;
     private boolean mIsParseSuccess = false;
     private void parseData(final String datas){
@@ -1028,7 +1039,11 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                                 showLoadFail("数据解析成功：" + bean.toString() + "准备发送关闭命令");
                             }
                         });
-                        BleNFCManager.getInstance().sendOffLine(new byte[]{(byte)0x8E});
+                        if (Byte.parseByte(bean.byte10,16) == reply_data1) {
+                            BleNFCManager.getInstance().sendOffLine(reply_data);
+                        } else {
+                            BleNFCManager.getInstance().sendOffLine(version_data);
+                        }
                         mIsParseSuccess = true;
                     } else {
                         String showContent = content;
