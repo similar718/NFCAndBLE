@@ -29,7 +29,6 @@ import com.clj.fastble.nfc.BleNFCManager;
 // import com.nfc.cn.application.NFCBleApplication;
 // import com.nfc.cn.ble.BleDeviceManager;
 import com.nfc.cn.bean.NotifyBLEDataConstructerBean;
-import com.nfc.cn.ble.ScanConnectDeviceCallback;
 import com.nfc.cn.databinding.ActivityMainBinding;
 import com.nfc.cn.listener.SocketListener;
 import com.nfc.cn.nfcres.NfcHandler;
@@ -1021,25 +1020,25 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                     // 上面的数据表示 58 表示数据是全的
                     if (content.startsWith("FF") && content.endsWith("9C") && content.length() == 60) {
                         NotifyBLEDataConstructerBean bean = new NotifyBLEDataConstructerBean();
-                        bean.setByte0(content.substring(0, 2));
-                        bean.setByte1(content.substring(2, 4));
-                        bean.setByte2(content.substring(4, 6));
-                        bean.setByte3(content.substring(6, 18));
-                        bean.setByte4(content.substring(18, 22));
-                        bean.setByte5(content.substring(22, 24));
-                        bean.setByte6(content.substring(24, 40));
-                        bean.setByte7(content.substring(40, 42));
-                        bean.setByte8(content.substring(42, 44));
-                        bean.setByte9(content.substring(44, 56));
-                        bean.setByte10(content.substring(56, 58));
-                        bean.setByte11(content.substring(58, 60));
+                        bean.setBaotou(content.substring(0, 2));
+                        bean.setKehudaima(content.substring(2, 4));
+                        bean.setShujubaoType(content.substring(4, 6));
+                        bean.setIpAndPort(content.substring(6, 18));
+                        bean.setDevId(content.substring(18, 22));
+                        bean.setPower(content.substring(22, 24));
+                        bean.setLatlng(content.substring(24, 40));
+                        bean.setLatlngType(content.substring(40, 42));
+                        bean.setWeixingnum(content.substring(42, 44));
+                        bean.setMac(content.substring(44, 56));
+                        bean.setVersion(content.substring(56, 58));
+                        bean.setBaowei(content.substring(58, 60));
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 showLoadFail("数据解析成功：" + bean.toString() + "准备发送关闭命令");
                             }
                         });
-                        if (Byte.parseByte(bean.byte10,16) == reply_data1) {
+                        if (Byte.parseByte(bean.version,16) == reply_data1) {
                             BleNFCManager.getInstance().sendOffLine(reply_data);
                         } else {
                             String bledata = dataBinding.etBleData.getText().toString().trim();
