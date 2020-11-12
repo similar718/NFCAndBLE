@@ -148,7 +148,7 @@
             android:layout_height="@dimen/dp_50"
             android:layout_below="@id/tv_ble_name"
             android:background="@color/gray"
-            android:hint="8FEBEF6068DB0EB06F8004007717E2258023299C"
+            android:hint="8FEBEF6068DB0EB06F8004007717E2258023329C"
             android:textColor="@color/color_white"
             android:textColorHint="@color/color_white"
             android:singleLine="true"

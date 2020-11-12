@@ -977,10 +977,10 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             (byte) 0x8F,(byte) 0xEB,(byte) 0xEF,(byte) 0x60,(byte) 0x68,
             (byte) 0xDB,(byte) 0x0E,(byte) 0xB0,(byte) 0x6F,(byte) 0x80,
             (byte) 0x04,(byte) 0x00,(byte) 0x77,(byte) 0x17,(byte) 0xE2,
-            (byte) 0x25,(byte) 0x80,(byte) 0x23,(byte) 0x29,(byte) 0x9C};
+            (byte) 0x25,(byte) 0x80,(byte) 0x23,(byte) 0x32,(byte) 0x9C};
 
     byte[] reply_data = new byte[]{(byte)0x8E,(byte)0x9C};
-    byte reply_data1 = (byte) 0x29;
+    byte reply_data1 = (byte) 0x32;
 
     private boolean mIsParse = false;
     private boolean mIsParseSuccess = false;
@@ -1046,7 +1046,7 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                             if (TextUtils.isEmpty(bledata)){
                                 BleNFCManager.getInstance().sendOffLine(version_data);
                             } else {
-                                BleNFCManager.getInstance().sendOffLine(bledata.getBytes());
+                                BleNFCManager.getInstance().sendOffLine(hexStrToByteArray(bledata));
                             }
                         }
                         mIsParseSuccess = true;
