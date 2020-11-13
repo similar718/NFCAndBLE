@@ -148,6 +148,13 @@ public class NotifyBLEDataConstructerBean {
             for (int i = 0;i < 8; i++){
                 int item = Integer.parseInt(latlng.substring(i*2,i*2+2),16);
                 if (i == 0){
+                    lng = item + ".";
+                } else if (i == 4) {
+                    lat = item + ".";
+                } else if (i < 4) {
+                    lng += item;
+                } else {
+                    lat += item;
                 }
             }
             return lng + "," + lat;
