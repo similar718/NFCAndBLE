@@ -6,6 +6,7 @@ import com.clj.fastble.libs.BleDeviceInfo;
 public interface BleNFCListener {
     void initFailed(byte data);  //  初始化失败 需要配合相关操作之后再重新初始化
     void initSuccess(); // 初始化成功
+    void scanDevice(String names); // 扫描到目标设备
     void scanDevice(); // 扫描到目标设备
     void scanNotDevice(); // 未扫描到目标设备
     void startConnDevice(BleDevice bleDevice); // 开始连接

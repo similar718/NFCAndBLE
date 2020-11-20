@@ -680,7 +680,15 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
         }
 
         @Override
+        public void scanDevice(String names) {
+            dataText.append(names + "\n");
+            dataBinding.tvCheckData.setText(dataText.toString());
+        }
+
+        @Override
         public void scanDevice() {// 扫描到目标设备
+            dataText.append("");
+            dataBinding.tvCheckData.setText(dataText.toString());
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -699,6 +707,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
 
         @Override
         public void scanNotDevice() { // 未扫描到目标设备
+            dataText.append("");
+            dataBinding.tvCheckData.setText(dataText.toString());
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {

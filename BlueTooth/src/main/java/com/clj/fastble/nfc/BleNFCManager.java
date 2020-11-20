@@ -182,7 +182,10 @@ public class BleNFCManager {
             @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
             @Override
             public void onScanning(BleDevice bleDevice) {
-                if (Constants.mBleName.equals(bleDevice.getName())){ // TODO 判断是否是我们需要的设备名称的设备
+                if (bleDevice.getName() != null){
+                    mBlueToothListener.scanDevice(bleDevice.getName() + " " + bleDevice.getMac());
+                }
+                if (bleDevice.getName() != null && bleDevice.getName().contains(Constants.mBleName)){ // TODO 判断是否是我们需要的设备名称的设备
                     if (!BleManager.getInstance().isConnected(bleDevice)) { // 判断设备名称是正常的设备是否已经被连接
                         mIsScanDes = true;
                         mBlueToothListener.scanDevice(); // 已经扫描到一个可用设备
