@@ -986,10 +986,10 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             (byte) 0x8F,(byte) 0xEB,(byte) 0xEF,(byte) 0x60,(byte) 0x68,
             (byte) 0xDB,(byte) 0x0E,(byte) 0xB0,(byte) 0x6F,(byte) 0x80,
             (byte) 0x04,(byte) 0x00,(byte) 0x77,(byte) 0x17,(byte) 0xE2,
-            (byte) 0x25,(byte) 0x80,(byte) 0x23,(byte) 0x32,(byte) 0x9C};
+            (byte) 0x25,(byte) 0x80,(byte) 0x23,(byte) 0x02,(byte) 0x9C};
 
     byte[] reply_data = new byte[]{(byte)0x8E,(byte)0x9C};
-    byte reply_data1 = (byte) 0x32;
+    byte reply_data1 = (byte) 0x02;
 
     private boolean mIsParse = false;
     private boolean mIsParseSuccess = false;
@@ -1048,16 +1048,16 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                                 showLoadFail("数据解析成功：" + bean.toString() + "准备发送关闭命令");
                             }
                         });
-                        if (Byte.parseByte(bean.version,16) == reply_data1) {
-                            BleNFCManager.getInstance().sendOffLine(reply_data);
-                        } else {
+//                        if (Byte.parseByte(bean.version,16) == reply_data1) {
+//                            BleNFCManager.getInstance().sendOffLine(reply_data);
+//                        } else {
                             String bledata = dataBinding.etBleData.getText().toString().trim();
                             if (TextUtils.isEmpty(bledata)){
                                 BleNFCManager.getInstance().sendOffLine(version_data);
                             } else {
                                 BleNFCManager.getInstance().sendOffLine(hexStrToByteArray(bledata));
                             }
-                        }
+//                        }
                         mIsParseSuccess = true;
                     } else {
                         String showContent = content;
