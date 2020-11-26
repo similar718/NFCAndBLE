@@ -88,25 +88,36 @@ public class NotifyBLEDataConstructerBean {
         this.shujubaoType = shujubaoType;
     }
 
+    private int port;
+    private String ipAddress;
+
+    public int getIPPort(){
+        return port;
+    }
+
+    public String getIpAddress(){
+        return ipAddress;
+    }
+
     public String getIpAndPort() { // 6
         if (mIsTest) {
             return "IP/端口：" + ipAndPort;
         } else {
-            String ip = "";
-            int port = 0;
+            ipAddress = "";
+            port = 0;
             for(int i = 0; i < 6; i++){
                 int item = Integer.parseInt(ipAndPort.substring(i*2,i*2+2),16);
                 if (i < 3) {
-                    ip += item + ".";
+                    ipAddress += item + ".";
                 } else if (i == 3){
-                    ip += item + ":";
+                    ipAddress += item;
                 } else if (i == 4){
-                    port = item * 100;
+                    port = item;
                 } else {
-                    port = port + item;
+                    port = port + item * 256;
                 }
             }
-            return ip + port;
+            return ipAddress + ":" + port;
         }
     }
 
@@ -253,13 +264,13 @@ public class NotifyBLEDataConstructerBean {
     }
 
     public boolean checkMacAndDevId(){
-        String macstr = getMac();
+        String macStr = getMac();
         String devId = getDevId();
 
-        char mac_b1 = macstr.charAt(4);
-        char mac_b2 = macstr.charAt(9);
-        char mac_b3 = macstr.charAt(1);
-        char mac_b4 = macstr.charAt(6);
+        char mac_b1 = macStr.charAt(4);
+        char mac_b2 = macStr.charAt(9);
+        char mac_b3 = macStr.charAt(1);
+        char mac_b4 = macStr.charAt(6);
 
         char dev_b1 = devId.charAt(3);
         char dev_b2 = devId.charAt(2);

@@ -1039,7 +1039,8 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
                         bean.setLatlng(content.substring(24, 40));
                         bean.setLatlngType(content.substring(40, 42));
                         bean.setWeixingnum(content.substring(42, 44));
-                        bean.setMac(content.substring(44, 56));
+                        String macStr = content.substring(44, 56);
+                        bean.setMac(macStr);
                         bean.setVersion(content.substring(56, 58));
                         bean.setBaowei(content.substring(58, 60));
                         runOnUiThread(new Runnable() {
@@ -1052,6 +1053,13 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
 //                            BleNFCManager.getInstance().sendOffLine(reply_data);
 //                        } else {
                             String bledata = dataBinding.etBleData.getText().toString().trim();
+                            StringBuilder devId = new StringBuilder()
+                                    .append(macStr.substring(7,8))
+                                    .append(macStr.substring(3,4))
+                                    .append(macStr.substring(10,11))
+                                    .append(macStr.substring(5,6))
+                                    ;
+                            bledata = bledata.substring(0,4) + devId.toString() + macStr + bledata.substring(20);
                             if (TextUtils.isEmpty(bledata)){
                                 BleNFCManager.getInstance().sendOffLine(version_data);
                             } else {
