@@ -993,94 +993,127 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
 
     private boolean mIsParse = false;
     private boolean mIsParseSuccess = false;
-    private void parseData(final String datas){
+    private void parseData(final String datas) {
         if (!mIsParse) {
             mIsParse = true;
-//            new Thread(new Runnable() {
-//                @Override
-//                public void run() {
-                    String data = datas.toUpperCase();
-                    String content = ""; // 装所有数据的字符串
-                    // 判断当前数据有头有尾
-                    if (data.contains("FF") && data.contains("9C")) {
-                        // 开始截取头部之后的数据 判断是否是以FF 或者 ff 开始
-                        if (data.startsWith("FF")) {
-                            content = data;
-                        } else {
-                            // 需要进行截取
-                            String[] splitFF = data.split("FF");
-                            if (splitFF.length > 1) {
-                                content = "FF" + splitFF[1];
-                            } else {
-                                content = "";
-                            }
-                        }
-                        // 开始截取尾部之前的位置 判断是否是以9C 或者 9c 结尾
-                        if (content.endsWith("9C")) {
-                        } else {
-                            // 需要进行截取
-                            String[] split9C = content.split("9C");
-                            if (split9C.length > 0) {
-                                content = split9C[0] + "9C";
-                            } else {
-                                content = "";
-                            }
-                        }
-                    }
-                    // 上面的数据表示 58 表示数据是全的
-                    if (content.startsWith("FF") && content.endsWith("9C") && content.length() == 60) {
-                        NotifyBLEDataConstructerBean bean = new NotifyBLEDataConstructerBean();
-                        bean.setBaotou(content.substring(0, 2));
-                        bean.setKehudaima(content.substring(2, 4));
-                        bean.setShujubaoType(content.substring(4, 6));
-                        bean.setIpAndPort(content.substring(6, 18));
-                        bean.setDevId(content.substring(18, 22));
-                        bean.setPower(content.substring(22, 24));
-                        bean.setLatlng(content.substring(24, 40));
-                        bean.setLatlngType(content.substring(40, 42));
-                        bean.setWeixingnum(content.substring(42, 44));
-                        String macStr = content.substring(44, 56);
-                        bean.setMac(macStr);
-                        bean.setVersion(content.substring(56, 58));
-                        bean.setBaowei(content.substring(58, 60));
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                showLoadFail("数据解析成功：" + bean.toString() + "准备发送关闭命令");
-                            }
-                        });
-//                        if (Byte.parseByte(bean.version,16) == reply_data1) {
-//                            BleNFCManager.getInstance().sendOffLine(reply_data);
-//                        } else {
-                            String bledata = dataBinding.etBleData.getText().toString().trim();
-                            StringBuilder devId = new StringBuilder()
-                                    .append(macStr.substring(7,8))
-                                    .append(macStr.substring(3,4))
-                                    .append(macStr.substring(10,11))
-                                    .append(macStr.substring(5,6))
-                                    ;
-                            bledata = bledata.substring(0,4) + devId.toString() + macStr + bledata.substring(20);
-                            if (TextUtils.isEmpty(bledata)){
-                                BleNFCManager.getInstance().sendOffLine(version_data);
-                            } else {
-                                BleNFCManager.getInstance().sendOffLine(hexStrToByteArray(bledata));
-                            }
-//                        }
-                        mIsParseSuccess = true;
+            String data = datas.toUpperCase();
+            String content = ""; // 装所有数据的字符串
+            // 判断当前数据有头有尾
+            if (data.contains("FF") && data.contains("9C")) {
+                // 开始截取头部之后的数据 判断是否是以FF 或者 ff 开始
+                if (data.startsWith("FF")) {
+                    content = data;
+                } else {
+                    // 需要进行截取
+                    String[] splitFF = data.split("FF");
+                    if (splitFF.length > 1) {
+                        content = "FF" + splitFF[1];
                     } else {
-                        String showContent = content;
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                showLoadFail("数据不全 解析之后的数据：" + showContent + "\n 解析之前的数据：" + datas);
-                            }
-                        });
-                        mIsParseSuccess = false;
+                        content = "";
                     }
-                    mIsParse = false;
                 }
-//            });
-//        }
+                // 开始截取尾部之前的位置 判断是否是以9C 或者 9c 结尾
+                if (content.endsWith("9C")) {
+                } else {
+                    // 需要进行截取
+                    String[] split9C = content.split("9C");
+                    if (split9C.length > 0) {
+                        content = split9C[0] + "9C";
+                    } else {
+                        content = "";
+                    }
+                }
+            }
+            // 上面的数据表示 58 表示数据是全的
+            if (content.startsWith("FF") && content.endsWith("9C") && content.length() == 60) {
+                NotifyBLEDataConstructerBean bean = new NotifyBLEDataConstructerBean();
+                bean.setBaotou(content.substring(0, 2));
+                bean.setKehudaima(content.substring(2, 4));
+                bean.setShujubaoType(content.substring(4, 6));
+                String ipandport = content.substring(6, 18);
+                bean.setIpAndPort(ipandport);
+                String devId = content.substring(18, 22);
+                bean.setDevId(devId);
+                bean.setPower(content.substring(22, 24));
+                bean.setLatlng(content.substring(24, 40));
+                bean.setLatlngType(content.substring(40, 42));
+                bean.setWeixingnum(content.substring(42, 44));
+                String macStr = content.substring(44, 56);
+                bean.setMac(macStr);
+                bean.setVersion(content.substring(56, 58));
+                bean.setBaowei(content.substring(58, 60));
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        showLoadFail("数据解析成功：" + bean.toString() + "准备发送关闭命令");
+                    }
+                });
+                if (bean.checkMacAndDevId(macStr, devId)) {
+                    // TODO 判断设备当前是否未激活
+                    if (bean.getShujubaoType().equals("04")) {
+                        StringBuilder devIds = new StringBuilder()
+                                .append(macStr.substring(7, 8))
+                                .append(macStr.substring(3, 4))
+                                .append(macStr.substring(10, 11))
+                                .append(macStr.substring(5, 6));
+                        StringBuilder dataBle = new StringBuilder();
+                        dataBle.append("8D"); // 0x8F/0x8D/0x8C	用于标明配置包/通知终端激活/休眠
+                        dataBle.append(bean.getKehudaima()); // 客户代码
+                        dataBle.append(devIds.toString()); // DevId
+                        dataBle.append(macStr); // 设备mac地址
+                        dataBle.append("03");//停止事件的判断时间	1 Byte 0x03 停止运动超过设置时间，则判断事件有效，开启GPS。单位：分钟，0A代表10分钟。默认3分钟。
+                        dataBle.append("05");//终端休眠	1 Byte	0x05	禁用4G，GPS的小时数；默认0小时；单位小时，05代表5小时。
+                        dataBle.append(ipandport);//IP在前，设备4G上报的IP和端口。
+                        dataBle.append("02");//用于标注配置的版本号，设备应保存。
+                        dataBle.append("9C");//结束字符
+                        String dataSend = "8D0000000000000000000000000000000000009C";
+                        BleNFCManager.getInstance().sendOffLine(hexStrToByteArray(dataSend));
+                    } else {
+                        // TODO 判断设备版本与服务器版本是否一致
+                        if (Byte.parseByte(bean.version, 16) == reply_data1) {
+                            // 一致 返回8E 9C
+                            BleNFCManager.getInstance().sendOffLine(reply_data);
+                        } else {
+                            // 8F EB EF60 68DB0EB06F80 04 00 7717E2258023 02 9C
+                            StringBuilder devIds = new StringBuilder()
+                                    .append(macStr.substring(7, 8))
+                                    .append(macStr.substring(3, 4))
+                                    .append(macStr.substring(10, 11))
+                                    .append(macStr.substring(5, 6));
+                            StringBuilder dataBle = new StringBuilder();
+                            dataBle.append("8F"); // 0x8F/0x8D/0x8C	用于标明配置包/通知终端激活/休眠
+                            dataBle.append("EB"); // 客户代码
+                            dataBle.append(devIds.toString()); // DevId
+                            dataBle.append(macStr); // 设备mac地址
+                            dataBle.append("03");//停止事件的判断时间	1 Byte 0x03 停止运动超过设置时间，则判断事件有效，开启GPS。单位：分钟，0A代表10分钟。默认3分钟。
+                            dataBle.append("05");//终端休眠	1 Byte	0x05	禁用4G，GPS的小时数；默认0小时；单位小时，05代表5小时。
+                            dataBle.append(ipandport);//IP在前，设备4G上报的IP和端口。
+                            dataBle.append("02");//用于标注配置的版本号，设备应保存。
+                            dataBle.append("9C");//结束字符
+                            BleNFCManager.getInstance().sendOffLine(hexStrToByteArray(dataBle.toString()));
+                        }
+                    }
+                } else {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            showLoadFail("设备验证失败，可能是因为大小端的问题 mac = " + macStr + " dev = " + devId);
+                        }
+                    });
+                }
+                mIsParseSuccess = true;
+            } else {
+                String showContent = content;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        showLoadFail("数据不全 解析之后的数据：" + showContent + "\n 解析之前的数据：" + datas);
+                    }
+                });
+                mIsParseSuccess = false;
+            }
+            mIsParse = false;
+        }
     }
 
     public static byte[] hexStrToByteArray(String data) {
@@ -1093,6 +1126,23 @@ public class MainActivity extends NFCBaseActivity<MainViewModel, ActivityMainBin
             bytes[i] = (byte) Integer.parseInt(subStr,16);
         }
         return bytes;
+    }
+
+    public String IP_SOCKET = "119.23.226.237";
+    public int PORT_SOCKET = 9088;
+
+    /**
+     * 将ip地址和端口信息进行转为16进制的字符串
+     * @return
+     */
+    public static String getIpAndPortToHexStr(String IP, int port){
+        StringBuilder data = new StringBuilder();
+        String[] ips = IP.split(".");
+        for(String item : ips){
+            data.append(Integer.valueOf(item,16));
+        }
+        data.append(Integer.toString(port,16));
+        return data.toString();
     }
 
     private void updateServerData(String data){
